@@ -1,0 +1,126 @@
+---
+title: "summary-figures"
+format: html
+editor: visual
+---
+
+## Packages, Package version control, directories
+
+```{r Setup}
+library("groundhog")
+# list additional packages in vector below
+pkgs <- c(
+  "readr",
+  "tidyverse", 
+  "magrittr") 
+# Keep this date set to load in version controlled packages
+groundhog.library(pkgs, "2023-01-01")
+
+## Set up directories 
+if(dir.exists(file.path("../figures"))){
+  fig_dir <- file.path("../figures")
+} else{dir.create(file.path("../figures"))
+  fig_dir <- file.path("../figures")
+}
+
+if(dir.exists(file.path("../data"))){
+  data_dir <- file.path("../data")
+} else{dir.create(file.path("../data"))
+  data_dir <- file.path("../data")
+}
+```
+
+## Read in Data
+
+```{r Import_Data}
+## Read in compiled vessel data
+comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-24.csv"))
+
+## Set company variable (change based on which report is being generated)
+company <- "NESI"
+sup_chain <- "Sri Lanka Yellowfin"
+
+## Filter data by company
+vessels <- comp_vessels %>% 
+  filter(c == company,
+         c_listname == sup_chain)
+```
+
+## High Priority
+
+```{r High_priority}
+## IUU Listed Vessels
+
+## Unauthorized Fishing in RFMO
+
+## MPA Fishing hours 
+
+mpa_hr <- vessels %>% 
+  select(v_id, gfw_fishing_hr_mpa) %>% 
+  summarize("data_vessels" = length(vessels$gfw_fishing_hr_mpa[which(!is.na(vessels$gfw_fishing_hr_mpa))]),
+            "nodata_vessels" = length(vessels$gfw_fishing_hr_mpa[which(is.na(vessels$gfw_fishing_hr_mpa))]),
+           "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
+           "mpa_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T)
+           )
+
+# prep summary data for figure
+fig_data <- mpa_hr %>% 
+  select(data_vessels, nodata_vessels) %>% 
+  pivot_longer(cols = c(data_vessels, nodata_vessels), names_to = "data",
+               values_to = "count") %>% 
+  mutate(fraction = count/sum(count)
+         )
+fig_data$ymax = cumsum(fig_data$fraction)
+fig_data$ymin <- c(0, head(fig_data$ymax, n=-1))
+
+# doughnut figure
+doughnut <- ggplot(fig_data, aes(ymax=ymax, 
+                             ymin=ymin, 
+                             xmax=4, 
+                             xmin=3, 
+                             fill=data)) +
+     geom_rect() +
+  # Try to remove that to understand how the chart is built initially
+     coord_polar(theta="y") + 
+  # Try to remove that to see how to make a pie chart
+     xlim(c(2, 4)) 
+doughnut
+
+## Unauthorized Transshipment
+
+un_tship <- vessels %>% 
+  select(v_id, gfw_n_transship_unauthorized) %>% 
+  summarize("n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T),
+            "total_vessels" = length(v_id),
+            "data_vessels" = length(vessels$gfw_n_transship_unauthorized[which(!is.na(vessels$gfw_n_transship_unauthorized))])
+            )
+
+
+```
+
+## Medium Priority
+
+```{r}
+## Vessel Name Changes 
+
+## Vessel Flag Changes 
+
+## Intentional AIS Disabling
+
+## Long Fishing Trips
+
+long_trip <- vessels %>% 
+  select(v_id, gfw_n_long_trips) %>% 
+```
+
+## Low Priority
+
+```{r}
+## EU Carding Status 
+
+## US Carding Status
+
+## IUU Species Risk
+
+```
+

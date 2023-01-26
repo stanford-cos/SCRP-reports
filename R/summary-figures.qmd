@@ -46,6 +46,56 @@ vessels <- comp_vessels %>%
          c_listname == sup_chain)
 ```
 
+```{r function_doughnut}
+make_doughnut <- function(indicator) {
+  fig_data <- indicator %>%
+    select(data_vessels, nodata_vessels) %>%
+    pivot_longer(
+      cols = c(data_vessels, nodata_vessels),
+      names_to = "data",
+      values_to = "count"
+    ) %>%
+    mutate(fraction = count / sum(count))
+  fig_data$ymax = cumsum(fig_data$fraction)
+  fig_data$ymin <- c(0, head(fig_data$ymax, n = -1))
+  
+  # doughnut color
+  
+  dough_color <- c("#2F7604", "#cccccc")
+  
+  # doughnut figure
+  doughnut <- ggplot(fig_data,
+                     aes(
+                       ymax = ymax,
+                       ymin = ymin,
+                       xmax = 4,
+                       xmin = 3,
+                       fill = data
+                     )) +
+    geom_rect() +
+    # Try to remove that to understand how the chart is built initially
+    coord_polar(theta = "y") +
+    # Try to remove that to see how to make a pie chart
+    xlim(c(0.5, 4)) +
+    theme_void() +
+    scale_fill_manual(values = dough_color) +
+    #scale_color_manual(values = dough_color) +
+    theme(legend.position = "none")
+  
+  ggsave(doughnut,
+         filename = file.path(fig_dir,
+                              paste0("doughnut_", 
+                                     deparse(substitute(indicator)), 
+                                     ".png")),
+           width = 0.5,
+           height = 0.5,
+           units = "in",
+           dpi = 600
+         )
+}
+```
+
+
 ## High Priority
 
 ```{r High_priority}
@@ -62,39 +112,18 @@ mpa_hr <- vessels %>%
            "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
            "mpa_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T)
            )
-
-# prep summary data for figure
-fig_data <- mpa_hr %>% 
-  select(data_vessels, nodata_vessels) %>% 
-  pivot_longer(cols = c(data_vessels, nodata_vessels), names_to = "data",
-               values_to = "count") %>% 
-  mutate(fraction = count/sum(count)
-         )
-fig_data$ymax = cumsum(fig_data$fraction)
-fig_data$ymin <- c(0, head(fig_data$ymax, n=-1))
-
-# doughnut figure
-doughnut <- ggplot(fig_data, aes(ymax=ymax, 
-                             ymin=ymin, 
-                             xmax=4, 
-                             xmin=3, 
-                             fill=data)) +
-     geom_rect() +
-  # Try to remove that to understand how the chart is built initially
-     coord_polar(theta="y") + 
-  # Try to remove that to see how to make a pie chart
-     xlim(c(2, 4)) 
-doughnut
+# make vessel data availability doughnut figure
+make_doughnut(mpa_hr)
 
 ## Unauthorized Transshipment
 
 un_tship <- vessels %>% 
   select(v_id, gfw_n_transship_unauthorized) %>% 
-  summarize("n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T),
-            "total_vessels" = length(v_id),
-            "data_vessels" = length(vessels$gfw_n_transship_unauthorized[which(!is.na(vessels$gfw_n_transship_unauthorized))])
+  summarize("data_vessels" = length(vessels$gfw_n_transship_unauthorized[which(!is.na(vessels$gfw_n_transship_unauthorized))]),
+            "nodata_vessels" = length(vessels$gfw_n_transship_unauthorized[which(is.na(vessels$gfw_n_transship_unauthorized))]),
+            "n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T)
             )
-
+make_doughnut(un_tship)
 
 ```
 

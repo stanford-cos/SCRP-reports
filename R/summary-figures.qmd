@@ -59,9 +59,10 @@ make_doughnut <- function(indicator) {
   fig_data$ymax = cumsum(fig_data$fraction)
   fig_data$ymin <- c(0, head(fig_data$ymax, n = -1))
   
+  
   # doughnut color
   
-  dough_color <- c("#2F7604", "#cccccc")
+  dough_color <- c("#0074DD", "#9BCCFD")
   
   # doughnut figure
   doughnut <- ggplot(fig_data,
@@ -75,8 +76,8 @@ make_doughnut <- function(indicator) {
     geom_rect() +
     # Try to remove that to understand how the chart is built initially
     coord_polar(theta = "y") +
-    # Try to remove that to see how to make a pie chart
-    xlim(c(0.5, 4)) +
+    # adjust thickness
+    xlim(c(0, 4)) +
     theme_void() +
     scale_fill_manual(values = dough_color) +
     #scale_color_manual(values = dough_color) +
@@ -93,20 +94,27 @@ make_doughnut <- function(indicator) {
            dpi = 600
          )
 }
+
+# calc percent vessels with data
+calc_prt_vessels <- function(indicator){
+  indicator$data_vessels/(indicator$data_vessels + indicator$nodata_vessels)
+}
+
+
 ```
 
 
 ## High Priority
 
 ```{r High_priority}
-## IUU Listed Vessels
+#### IUU Listed Vessels
 
-## Unauthorized Fishing in RFMO
+#### Unauthorized Fishing in RFMO
 
-## MPA Fishing hours 
+#### MPA Fishing hours 
 
 mpa_hr <- vessels %>% 
-  select(v_id, gfw_fishing_hr_mpa) %>% 
+  select(gfw_fishing_hr_mpa) %>% 
   summarize("data_vessels" = length(vessels$gfw_fishing_hr_mpa[which(!is.na(vessels$gfw_fishing_hr_mpa))]),
             "nodata_vessels" = length(vessels$gfw_fishing_hr_mpa[which(is.na(vessels$gfw_fishing_hr_mpa))]),
            "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
@@ -115,16 +123,19 @@ mpa_hr <- vessels %>%
 # make vessel data availability doughnut figure
 make_doughnut(mpa_hr)
 
-## Unauthorized Transshipment
+# vessels with data
+calc_prt_vessels(mpa_hr)
+
+#### Unauthorized Transshipment
 
 un_tship <- vessels %>% 
-  select(v_id, gfw_n_transship_unauthorized) %>% 
+  select(gfw_n_transship_unauthorized) %>% 
   summarize("data_vessels" = length(vessels$gfw_n_transship_unauthorized[which(!is.na(vessels$gfw_n_transship_unauthorized))]),
             "nodata_vessels" = length(vessels$gfw_n_transship_unauthorized[which(is.na(vessels$gfw_n_transship_unauthorized))]),
             "n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T)
             )
 make_doughnut(un_tship)
-
+calc_prt_vessels(un_tship)
 ```
 
 ## Medium Priority
@@ -135,21 +146,48 @@ make_doughnut(un_tship)
 ## Vessel Flag Changes 
 
 ## Intentional AIS Disabling
+ais_dis <- vessels %>% 
+  select(gfw_prop_ais_disable) %>% 
+  summarize("data_vessels" = length(vessels$gfw_prop_ais_disable[which(!is.na(vessels$gfw_prop_ais_disable))]),
+            "nodata_vessels" = length(vessels$gfw_prop_ais_disable[which(is.na(vessels$gfw_prop_ais_disable))]),
+            "n_vessels_dis" = length(vessels$gfw_prop_ais_disable[which(vessels$gfw_prop_ais_disable > 0)])
+            )
+
+make_doughnut(ais_dis)
+calc_prt_vessels(ais_dis)
 
 ## Long Fishing Trips
 
 long_trip <- vessels %>% 
-  select(v_id, gfw_n_long_trips) %>% 
+  select(gfw_n_long_trips) %>% 
+  summarize("data_vessels" = length(vessels$gfw_n_long_trips[which(!is.na(vessels$gfw_n_long_trips))]),
+            "nodata_vessels" = length(vessels$gfw_n_long_trips[which(is.na(vessels$gfw_n_long_trips))]),
+            "n_longtrip" = sum(gfw_n_long_trips, na.rm = T))
+
+make_doughnut(long_trip)
+calc_prt_vessels(long_trip)
 ```
 
 ## Low Priority
 
 ```{r}
 ## EU Carding Status 
+card_eu <- vessels %>% 
+  select(m_c_eu_flag) 
+
+unique(card_eu)
 
 ## US Carding Status
+card_us <- vessels %>% 
+  select(m_c_us_flag) 
+
+unique(card_us)
 
 ## IUU Species Risk
 
+iuu_species <- vessels %>% 
+  select(m_petro_score)
+
+unique(iuu_species)
 ```
 

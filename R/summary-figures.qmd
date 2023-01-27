@@ -12,7 +12,8 @@ library("groundhog")
 pkgs <- c(
   "readr",
   "tidyverse", 
-  "magrittr") 
+  "magrittr",
+  "readxl") 
 # Keep this date set to load in version controlled packages
 groundhog.library(pkgs, "2023-01-01")
 
@@ -33,18 +34,106 @@ if(dir.exists(file.path("../data"))){
 ## Read in Data
 
 ```{r Import_Data}
-## Read in compiled vessel data
-comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-24.csv"))
+## Compiled vessel data
+comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-26.csv"))
+
+## IUU Vessel List
+iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
 
 ## Set company variable (change based on which report is being generated)
 company <- "NESI"
 sup_chain <- "Sri Lanka Yellowfin"
 
-## Filter data by company
+## Filter data by company & supply chain
 vessels <- comp_vessels %>% 
   filter(c == company,
          c_listname == sup_chain)
 ```
+
+```{r iuu_vessel_list}
+
+iuu_listed <- iuu_vessels %>% 
+  filter(CurrentlyListed == "True") %>% 
+  select(Name, MMSI, VesselStatus, 20:47)
+
+iuu_listed$MMSI <- as.numeric(iuu_listed$MMSI)
+
+scrt_vessels <- vessels %>% 
+  select(c_name, gfw_mmsi) %>% 
+  filter(gfw_mmsi > 0) %>% 
+  rename("Name" = c_name,
+         "MMSI" = gfw_mmsi)
+
+# cross validate IUU list and scrt vessels by name and mmsi
+iuu_mmsi <- iuu_listed %>%
+  inner_join(scrt_vessels, by = c("MMSI"))
+iuu_name <- iuu_listed %>% 
+  inner_join(scrt_vessels, by = "Name")
+
+# No vessels match either on name or MMSI
+```
+
+
+```{r key_data_elements}
+
+#### mmsi
+mmsi <- vessels %>% 
+  select(c_mmsi) %>% 
+  filter(c_mmsi > 0)
+
+# % of vessels with mmsi 
+nrow(mmsi) / nrow(vessels)
+
+# gfw mmsi found
+mmsi_gfw <- vessels %>% 
+  select(gfw_mmsi) %>% 
+  filter(gfw_mmsi > 0)
+
+nrow(mmsi_gfw) / nrow(vessels)
+
+##### AIS disabled
+
+ais_dis <- vessels %>% 
+  select(gfw_prop_ais_disable) %>% 
+  filter(gfw_prop_ais_disable > 0)
+  
+nrow(ais_dis)
+
+##### AIS availability
+ais_avl <- vessels %>% 
+  select(m_AIS, gfw_prop_ais_coverage) %>% 
+  filter(m_AIS == "Have AIS for this vessel")
+
+# percent vessels with AIS
+nrow(ais_avl) / nrow(vessels)
+
+ais_gfw <- vessels %>% 
+  select(m_AIS, gfw_prop_ais_coverage) %>% 
+  drop_na()
+
+# percent vessels picked up by GFW
+nrow(ais_gfw) / nrow(vessels)
+
+# percent with AIS coverage
+ais_cover <- vessels %>% 
+  select(gfw_prop_ais_coverage) %>%
+  filter(gfw_prop_ais_coverage > 0)
+# percent of all vessels 
+nrow(ais_cover) / nrow(vessels)
+
+range(ais_cover)
+
+###### Port Matching 
+port_match <- vessels %>% 
+  select(port_matching) %>% 
+  na.omit() %>% 
+  filter(!port_matching %in% c("No AIS coverage", "AIS turned off before port entry"))
+
+nrow(port_match) / nrow(vessels)
+
+
+```
+
 
 ```{r function_doughnut}
 make_doughnut <- function(indicator) {

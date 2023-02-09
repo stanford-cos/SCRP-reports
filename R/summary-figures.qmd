@@ -20,7 +20,7 @@ pkgs <- c(
 # Keep this date set to load in version controlled packages
 groundhog.library(pkgs, "2023-01-01")
 
-## Set up directories 
+## Set up directories - need to fix
 if(dir.exists(file.path("../figures"))){
   fig_dir <- file.path("../figures")
 } else{dir.create(file.path("../figures"))
@@ -32,6 +32,30 @@ if(dir.exists(file.path("../data"))){
 } else{dir.create(file.path("../data"))
   data_dir <- file.path("../data")
 }
+```
+
+## Read in Data
+
+```{r Import_Data}
+## Compiled vessel data
+comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-26.csv"))
+
+## IUU Vessel List
+iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
+
+## Set company variable (change based on which report is being generated)
+company <- "NESI"
+sup_chain <- "Sri Lanka Yellowfin"
+
+# summarize of comanies and their supply chains
+company_sup_chains <- comp_vessels %>% 
+  group_by(c, c_listname) %>% 
+  summarize()
+
+## Filter data by company & supply chain
+vessels <- comp_vessels %>% 
+  filter(c == company,
+         c_listname == sup_chain)
 ```
 
 ```{r funcitons}
@@ -64,39 +88,12 @@ check_kde_data <- function(company, supplychain){
 }
 ```
 
-
-## Read in Data
-
-```{r Import_Data}
-## Compiled vessel data
-comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-26.csv"))
-
-## IUU Vessel List
-iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
-
-## Set company variable (change based on which report is being generated)
-company <- "NESI"
-sup_chain <- "Sri Lanka Yellowfin"
-
-# summarize of comanies and their supply chains
-company_sup_chains <- comp_vessels %>% 
-  group_by(c, c_listname) %>% 
-  summarize()
-
-## Filter data by company & supply chain
-vessels <- comp_vessels %>% 
-  filter(c == company,
-         c_listname == sup_chain)
-```
-
 ```{r kde_checklist}
 
 # create kde checklist for all supply chains
 kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_listname, check_kde_data)
 
 ```
-
-
 
 ```{r quick_summary_jim}
 summary_jim <- comp_vessels %>% 
@@ -123,14 +120,23 @@ tableaue_table <- comp_vessels %>%
   
 ```
 
+```{r report_IUU_indicators}
+
+calc_indicators <- comp_vessels %>% 
+  
+
+```
+
 
 ```{r iuu_vessel_list}
+
+
 
 iuu_listed <- iuu_vessels %>% 
   filter(CurrentlyListed == "True") %>% 
   select(Name, MMSI, VesselStatus, 20:47) %>% 
   mutate(Name = toupper(Name),
-         MMSI = as.numeric(iuu_listed$MMSI))
+         MMSI = as.numeric(MMSI))
 
 scrt_vessels <- vessels %>% 
   select(c_name, gfw_mmsi) %>% 
@@ -144,6 +150,8 @@ iuu_mmsi <- iuu_listed %>%
 # cross validate IUU list by vessel name
 iuu_name <- iuu_listed %>% 
   inner_join(scrt_vessels, by = "Name")
+
+
 
 # Need to manually look at both tables of matching
 ```

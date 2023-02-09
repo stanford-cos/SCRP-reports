@@ -4,9 +4,11 @@ format: html
 editor: visual
 ---
 
+
 ## Packages, Package version control, directories
 
 ```{r Setup}
+
 library("groundhog")
 # list additional packages in vector below
 pkgs <- c(
@@ -50,27 +52,55 @@ vessels <- comp_vessels %>%
          c_listname == sup_chain)
 ```
 
+
+```{r quick_summary_jim}
+summary_jim <- comp_vessels %>% 
+  group_by(c, c_listname) %>% 
+  summarize(num_vessels = length(c_name),
+            num_vessels_ais = sum(!is.na(gfw_prop_ais_coverage)),
+            percent_vessels_ais = num_vessels_ais / num_vessels *100,
+            mean_ais_prop = mean(gfw_prop_ais_coverage, na.rm = T),
+            med_ais_prop = median(gfw_prop_ais_coverage, na.rm = T))
+```
+
+```{r tableau_table}
+# what is "flag in open registries"?
+# where is "Total Trip Count" coming from? not in compiled vessels
+# Where to pull "Average Trip length" from?
+# where to pull "Fishing Events (hrs)"
+# "RFMO Fishing Event (hrs)" not calculated yet
+# "Unauthorized Fishing Event (hrs)" not calculated yet
+# What are Gap events?
+# 
+
+tableaue_table <- comp_vessels %>% 
+  select(v_id, c_country, gfw_fishing_hr_mpa, m_c_eu_flag, m_c_us_flag, ) %>% 
+  
+```
+
+
 ```{r iuu_vessel_list}
 
 iuu_listed <- iuu_vessels %>% 
   filter(CurrentlyListed == "True") %>% 
-  select(Name, MMSI, VesselStatus, 20:47)
-
-iuu_listed$MMSI <- as.numeric(iuu_listed$MMSI)
+  select(Name, MMSI, VesselStatus, 20:47) %>% 
+  mutate(Name = toupper(Name),
+         MMSI = as.numeric(iuu_listed$MMSI))
 
 scrt_vessels <- vessels %>% 
   select(c_name, gfw_mmsi) %>% 
-  filter(gfw_mmsi > 0) %>% 
+#  filter(gfw_mmsi > 0) %>% 
   rename("Name" = c_name,
          "MMSI" = gfw_mmsi)
 
-# cross validate IUU list and scrt vessels by name and mmsi
+# cross validate IUU list and scrt vessels by mmsi - will match by NA (interpret results carefully)
 iuu_mmsi <- iuu_listed %>%
   inner_join(scrt_vessels, by = c("MMSI"))
+# cross validate IUU list by vessel name
 iuu_name <- iuu_listed %>% 
   inner_join(scrt_vessels, by = "Name")
 
-# No vessels match either on name or MMSI
+# Need to manually look at both tables of matching
 ```
 
 
@@ -204,8 +234,8 @@ calc_prt_vessels <- function(indicator){
 
 mpa_hr <- vessels %>% 
   select(gfw_fishing_hr_mpa) %>% 
-  summarize("data_vessels" = length(vessels$gfw_fishing_hr_mpa[which(!is.na(vessels$gfw_fishing_hr_mpa))]),
-            "nodata_vessels" = length(vessels$gfw_fishing_hr_mpa[which(is.na(vessels$gfw_fishing_hr_mpa))]),
+  summarize("data_vessels" = sum(!is.na(gfw_fishing_hr_mpa)),
+            "nodata_vessels" = sum(is.na(gfw_fishing_hr_mpa)),
            "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
            "mpa_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T)
            )

@@ -15,7 +15,8 @@ pkgs <- c(
   "readr",
   "tidyverse", 
   "magrittr",
-  "readxl") 
+  "readxl",
+  "purrr") 
 # Keep this date set to load in version controlled packages
 groundhog.library(pkgs, "2023-01-01")
 
@@ -33,6 +34,37 @@ if(dir.exists(file.path("../data"))){
 }
 ```
 
+```{r funcitons}
+
+# create checklist of Key data elements (kde) for each company supply chain
+# assesses completeness of data company provided
+check_kde_data <- function(company, supplychain){
+  df <- comp_vessels %>% 
+    filter(c %in% company & c_listname %in% supplychain) %>% 
+    summarize("compnay" = company,
+              "supply_chain" = supplychain,
+            "species" = any(!is.na(c_species) | !is.na(c_common_name)),
+            "country_harvest" = any(!is.na(c_country)),
+            "ports_landing" = any(!is.na(c_port)),
+            "eez_highseas" = NA,
+            "harvest_rfmo" = NA,
+            "harvest_fao" = any(!is.na(c_fao)),
+            "harvest_fao_sub" = NA,
+            "cert_name" = NA,
+            "fip" = any(!is.na(FIP)),
+            "vessel_name" = any(!is.na(c_name)),
+            "vessel_imo" = any(!is.na(c_imo)),
+            "vessel_mmsi" = any(!is.na(c_mmsi)),
+            "vessel_callsign" = NA,
+            "vessel_flag" = any(!is.na(c_flag)),
+            "ais_data" = any(!is.na(gfw_prop_ais_coverage)),
+            "transship_reported" = NA
+            ) 
+  return(df)
+}
+```
+
+
 ## Read in Data
 
 ```{r Import_Data}
@@ -46,11 +78,24 @@ iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "I
 company <- "NESI"
 sup_chain <- "Sri Lanka Yellowfin"
 
+# summarize of comanies and their supply chains
+company_sup_chains <- comp_vessels %>% 
+  group_by(c, c_listname) %>% 
+  summarize()
+
 ## Filter data by company & supply chain
 vessels <- comp_vessels %>% 
   filter(c == company,
          c_listname == sup_chain)
 ```
+
+```{r kde_checklist}
+
+# create kde checklist for all supply chains
+kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_listname, check_kde_data)
+
+```
+
 
 
 ```{r quick_summary_jim}
@@ -162,6 +207,7 @@ port_match <- vessels %>%
 nrow(port_match) / nrow(vessels)
 
 
+  
 ```
 
 

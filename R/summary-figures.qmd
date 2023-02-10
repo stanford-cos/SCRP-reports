@@ -2,13 +2,19 @@
 title: "summary-figures"
 format: html
 editor: visual
+
+  
 ---
 
 
 ## Packages, Package version control, directories
 
-```{r Setup}
+```{r, setup}
 
+# set universal code chunk options, suppress warning and messages
+knitr::opts_chunk$set(warning = F, message = F)
+
+# package and R version control for reproducibility 
 library("groundhog")
 # list additional packages in vector below
 pkgs <- c(
@@ -17,7 +23,7 @@ pkgs <- c(
   "magrittr",
   "readxl",
   "purrr") 
-# Keep this date set to load in version controlled packages
+# Keep this date set to load package versions corresponding with date
 groundhog.library(pkgs, "2023-01-01")
 
 ## Set up directories - need to fix
@@ -40,6 +46,7 @@ if(dir.exists(file.path("../data"))){
 ## Compiled vessel data
 comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-26.csv"))
 
+
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
 
@@ -47,7 +54,7 @@ iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "I
 company <- "NESI"
 sup_chain <- "Sri Lanka Yellowfin"
 
-# summarize of comanies and their supply chains
+# summarize of companies and their supply chains
 company_sup_chains <- comp_vessels %>% 
   group_by(c, c_listname) %>% 
   summarize()
@@ -58,7 +65,30 @@ vessels <- comp_vessels %>%
          c_listname == sup_chain)
 ```
 
-```{r funcitons}
+## General report values
+
+- Number of vessels in supply chain
+- AIS positions found for percent of supply chain vessels
+- Range AIS coverage percent in last year for supply chain
+
+```{r report_values}
+
+bb_tuna <- read_csv(file.path(data_dir,"vessel_indicators_vv_marks_2023-02-10.csv"))
+
+summary_general <- bb_tuna %>% 
+  summarize("vessels_total_n" = length(v_id),
+            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
+            "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
+            "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_max" = max(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_median" = median(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_mean" = mean(vv_ais_coverage_percent, na.rm = T)
+            )
+
+```
+
+
+```{r functions}
 
 # create checklist of Key data elements (kde) for each company supply chain
 # assesses completeness of data company provided
@@ -87,6 +117,26 @@ check_kde_data <- function(company, supplychain){
   return(df)
 }
 ```
+
+## KDE checklist
+
+- percent of missing KDE
+- species scientific name
+- country of harvest
+- port(s) of landing
+- fishing in EEZ or high seas
+- RFMO of harvest
+- FAO region
+- FAO subregion (optional)
+- Certification name (if applicable)
+- FIP profile (if applicable)
+- Vessel name
+- Vessel IMO IMO number
+- Vessel MMSI
+- Vessel call sign (optional)
+- Vessel flag state (optional)
+- AIS data
+- Reported transshipments
 
 ```{r kde_checklist}
 
@@ -120,9 +170,43 @@ tableaue_table <- comp_vessels %>%
   
 ```
 
+
+
+## List of IUU report indicators 
+
+- RFMO IUU blacklisted vessels
+- Fishing events in RFMO without known authorization
+  - number of vessels
+- Potential transshipment events in RFMO without known authorization
+  - number of vessels
+- Potential fishing events in Marine Protected Areas
+  - number of vessels
+  - total fishing hours
+- Intentional ais disabling events
+  - total hours disabled
+  - proportion of AIS coverage in last year
+- Vessels with long fishing trips (>11 mo)
+- Number of vessel name changes in last year
+- Number of vessel flag changes in last year
+
+## Contextual Risk Indicators
+
+- Corruption Perceptions Index
+- PSMA ratification
+- EU carding status
+- US listing status
+- SIMP
+- Petrossian & Clark (2014) score
+
+
+
 ```{r report_IUU_indicators}
 
-calc_indicators <- comp_vessels %>% 
+
+
+
+report_indicators <- bb_tuna %>% 
+  
   
 
 ```

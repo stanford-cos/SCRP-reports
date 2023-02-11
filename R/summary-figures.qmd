@@ -2,10 +2,7 @@
 title: "summary-figures"
 format: html
 editor: visual
-
-  
 ---
-
 
 ## Packages, Package version control, directories
 
@@ -67,16 +64,18 @@ vessels <- comp_vessels %>%
 
 ## General report values
 
-- Number of vessels in supply chain
-- AIS positions found for percent of supply chain vessels
-- Range AIS coverage percent in last year for supply chain
+-   Number of vessels in supply chain
+-   AIS positions found for percent of supply chain vessels
+-   Range AIS coverage percent in last year for supply chain
 
 ```{r report_values}
 
 bb_tuna <- read_csv(file.path(data_dir,"vessel_indicators_vv_marks_2023-02-10.csv"))
 
 summary_general <- bb_tuna %>% 
-  summarize("vessels_total_n" = length(v_id),
+  summarize("company" = unique(c),
+            "supply_chain" = unique(c_listname),
+            "vessels_total_n" = length(v_id),
             "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
             "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
             "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
@@ -84,6 +83,32 @@ summary_general <- bb_tuna %>%
             "prct_ais_cover_median" = median(vv_ais_coverage_percent, na.rm = T),
             "prct_ais_cover_mean" = mean(vv_ais_coverage_percent, na.rm = T)
             )
+
+```
+
+```{r bb_kde}
+
+kde_bb_tuna <- bb_tuna %>%
+  summarize(
+    "company" = unique(c),
+    "supply_chain" = unique(c_listname),
+    "species" = any(!is.na(c_species) |!is.na(c_common_name)),
+    "country_harvest" = any(!is.na(c_country)),
+    "ports_landing" = any(!is.na(c_port)),
+    "eez_highseas" = NA,
+    "harvest_rfmo" = NA,
+    "harvest_fao" = any(!is.na(c_fao)),
+    "harvest_fao_sub" = NA,
+    "cert_name" = NA,
+    "fip" = any(!is.na(FIP)),
+    "vessel_name" = any(!is.na(c_name)),
+    "vessel_imo" = any(!is.na(c_imo)),
+    "vessel_mmsi" = any(!is.na(c_mmsi)),
+    "vessel_callsign" = NA,
+    "vessel_flag" = any(!is.na(c_flag)),
+    "ais_data" = any(!is.na(vv_ais_coverage_percent)),
+    "transship_reported" = NA
+  ) 
 
 ```
 
@@ -95,7 +120,7 @@ summary_general <- bb_tuna %>%
 check_kde_data <- function(company, supplychain){
   df <- comp_vessels %>% 
     filter(c %in% company & c_listname %in% supplychain) %>% 
-    summarize("compnay" = company,
+    summarize("company" = company,
               "supply_chain" = supplychain,
             "species" = any(!is.na(c_species) | !is.na(c_common_name)),
             "country_harvest" = any(!is.na(c_country)),
@@ -120,23 +145,23 @@ check_kde_data <- function(company, supplychain){
 
 ## KDE checklist
 
-- percent of missing KDE
-- species scientific name
-- country of harvest
-- port(s) of landing
-- fishing in EEZ or high seas
-- RFMO of harvest
-- FAO region
-- FAO subregion (optional)
-- Certification name (if applicable)
-- FIP profile (if applicable)
-- Vessel name
-- Vessel IMO IMO number
-- Vessel MMSI
-- Vessel call sign (optional)
-- Vessel flag state (optional)
-- AIS data
-- Reported transshipments
+-   percent of missing KDE
+-   species scientific name
+-   country of harvest
+-   port(s) of landing
+-   fishing in EEZ or high seas
+-   RFMO of harvest
+-   FAO region
+-   FAO subregion (optional)
+-   Certification name (if applicable)
+-   FIP profile (if applicable)
+-   Vessel name
+-   Vessel IMO IMO number
+-   Vessel MMSI
+-   Vessel call sign (optional)
+-   Vessel flag state (optional)
+-   AIS data
+-   Reported transshipments
 
 ```{r kde_checklist}
 
@@ -170,51 +195,48 @@ tableaue_table <- comp_vessels %>%
   
 ```
 
+## List of IUU report indicators
 
-
-## List of IUU report indicators 
-
-- RFMO IUU blacklisted vessels
-- Fishing events in RFMO without known authorization
-  - number of vessels
-- Potential transshipment events in RFMO without known authorization
-  - number of vessels
-- Potential fishing events in Marine Protected Areas
-  - number of vessels
-  - total fishing hours
-- Intentional ais disabling events
-  - total hours disabled
-  - proportion of AIS coverage in last year
-- Vessels with long fishing trips (>11 mo)
-- Number of vessel name changes in last year
-- Number of vessel flag changes in last year
-
-## Contextual Risk Indicators
-
-- Corruption Perceptions Index
-- PSMA ratification
-- EU carding status
-- US listing status
-- SIMP
-- Petrossian & Clark (2014) score
-
-
+-   RFMO IUU blacklisted vessels
+-   Fishing events in RFMO without known authorization
+    -   number of vessels
+-   Potential transshipment events in RFMO without known authorization
+    -   number of vessels
+-   Potential fishing events in Marine Protected Areas
+    -   number of vessels
+    -   total fishing hours
+-   Intentional ais disabling events
+    -   total hours disabled
+    -   proportion of AIS coverage in last year
+-   Vessels with long fishing trips (\>11 mo)
+-   Number of vessel name changes in last year
+-   Number of vessel flag changes in last year
 
 ```{r report_IUU_indicators}
 
-
-
-
 report_indicators <- bb_tuna %>% 
-  
+  summarize("iuu_listed" = sum((vv_iuu_listed)),
+            "rfmo_no_auth_events" = sum(vv_rfmo_events),
+            "rfmo_no_auth_vessels_n" = sum(vv_rfmo_events > 0),
+            "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized),
+            "transship_rfmo_vessels_n" = sum(vv_encounters_rfmo_unauthorized > 0),
+            "mpa_events" = sum(vv_mpa_events),
+            "mpa_vessels_n" = sum(vv_mpa_events > 0),
+            "mpa_total_hrs" = sum(vv_mpa_hrs),
+            "ais_disabling_events" = sum(vv_ais_disabled_n),
+            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
+            "ais_disabling_total_hrs" = sum(vv_ais_disable_hrs),
+            "ais_prop_cover_1yr_min" = min(vv_ais_coverage_percent, na.rm = T),
+            "ais_prop_cover_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
+            "ais_prop_cover_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
+            "vessel_name_change_n" = sum(vv_name_change),
+            "vesse;_flag_change_n" = sum(vv_flag_change)
+  )
   
 
 ```
 
-
 ```{r iuu_vessel_list}
-
-
 
 iuu_listed <- iuu_vessels %>% 
   filter(CurrentlyListed == "True") %>% 
@@ -240,6 +262,14 @@ iuu_name <- iuu_listed %>%
 # Need to manually look at both tables of matching
 ```
 
+## Contextual Risk Indicators
+
+-   Corruption Perceptions Index
+-   PSMA ratification
+-   EU carding status
+-   US listing status
+-   SIMP
+-   Petrossian & Clark (2014) score
 
 ```{r key_data_elements}
 
@@ -302,7 +332,6 @@ nrow(port_match) / nrow(vessels)
   
 ```
 
-
 ```{r function_doughnut}
 make_doughnut <- function(indicator) {
   fig_data <- indicator %>%
@@ -359,7 +388,6 @@ calc_prt_vessels <- function(indicator){
 
 
 ```
-
 
 ## High Priority
 
@@ -447,4 +475,3 @@ iuu_species <- vessels %>%
 
 unique(iuu_species)
 ```
-

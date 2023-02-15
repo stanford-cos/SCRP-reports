@@ -41,7 +41,7 @@ if(dir.exists(file.path("../data"))){
 
 ```{r Import_Data}
 ## Compiled vessel data
-comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-01-26.csv"))
+comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-15.csv"))
 
 
 ## IUU Vessel List
@@ -70,9 +70,24 @@ vessels <- comp_vessels %>%
 
 ```{r report_values}
 
-bb_tuna <- read_csv(file.path(data_dir,"vessel_indicators_vv_marks_2023-02-10.csv"))
+# merged first round of vessel viewer numbers back into CompiledVesselsIndicators table
 
-summary_general <- bb_tuna %>% 
+# bb_tuna <- read_csv(file.path(data_dir,"vessel_indicators_vv_marks_2023-02-15.csv"))
+# 
+# joined_vessels <- comp_vessels %>%
+#   left_join(bb_tuna %>%
+#               select(c, c_listname, c_name, 66:82),
+#                      by = c("c", "c_listname", "c_name")
+# )
+
+# Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
+bb_fiji <- comp_vessels %>% 
+  filter(c %in% c("Bumble Bee"),
+         c_listname %in% c("Tuna"),
+         c_flag %in% c("Fiji"),
+         str_detect(gfw_eez, "Fiji"))
+
+report_general <- bb_fiji %>% 
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
             "vessels_total_n" = length(v_id),
@@ -88,7 +103,7 @@ summary_general <- bb_tuna %>%
 
 ```{r bb_kde}
 
-kde_bb_tuna <- bb_tuna %>%
+report_kde_bb_fiji <- bb_fiji %>%
   summarize(
     "company" = unique(c),
     "supply_chain" = unique(c_listname),
@@ -102,11 +117,16 @@ kde_bb_tuna <- bb_tuna %>%
     "cert_name" = NA,
     "fip" = any(!is.na(FIP)),
     "vessel_name" = any(!is.na(c_name)),
+    "vessel_name_n" = sum(!is.na(c_name)),
     "vessel_imo" = any(!is.na(c_imo)),
+    "vessel_imo_n" = sum(!is.na(c_imo)),
     "vessel_mmsi" = any(!is.na(c_mmsi)),
+    "vessel_mmsi_n" = sum(!is.na(c_mmsi)),
     "vessel_callsign" = NA,
     "vessel_flag" = any(!is.na(c_flag)),
+    "vessel_flag_n" = sum(!is.na(c_flag)),
     "ais_data" = any(!is.na(vv_ais_coverage_percent)),
+    "ais_data_n" = sum(!is.na(vv_ais_coverage_percent)),
     "transship_reported" = NA
   ) 
 
@@ -214,26 +234,29 @@ tableaue_table <- comp_vessels %>%
 
 ```{r report_IUU_indicators}
 
-report_indicators <- bb_tuna %>% 
-  summarize("iuu_listed" = sum((vv_iuu_listed)),
-            "rfmo_no_auth_events" = sum(vv_rfmo_events),
-            "rfmo_no_auth_vessels_n" = sum(vv_rfmo_events > 0),
+report_indicators <- bb_fiji %>% 
+  summarize(
+      # High Risk Indicators      
+            "iuu_listed" = sum((vv_iuu_listed)),
+            "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
+            "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0),
             "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized),
             "transship_rfmo_vessels_n" = sum(vv_encounters_rfmo_unauthorized > 0),
             "mpa_events" = sum(vv_mpa_events),
             "mpa_vessels_n" = sum(vv_mpa_events > 0),
             "mpa_total_hrs" = sum(vv_mpa_hrs),
+      # Medium Risk Indicators
             "ais_disabling_events" = sum(vv_ais_disabled_n),
             "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
             "ais_disabling_total_hrs" = sum(vv_ais_disable_hrs),
             "ais_prop_cover_1yr_min" = min(vv_ais_coverage_percent, na.rm = T),
             "ais_prop_cover_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
             "ais_prop_cover_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
-            "vessel_name_change_n" = sum(vv_name_change),
-            "vesse;_flag_change_n" = sum(vv_flag_change)
+            # number of vessels with trips > 11 months
+            "vessels_long_trip_n" = sum(map_long_trip_n),
+            "vessels_name_change_n" = sum(vv_name_change),
+            "vessels_flag_change_n" = sum(vv_flag_change)
   )
-  
-
 ```
 
 ```{r iuu_vessel_list}

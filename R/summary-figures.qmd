@@ -43,7 +43,6 @@ if(dir.exists(file.path("../data"))){
 ## Compiled vessel data
 comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-15.csv"))
 
-
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
 
@@ -60,6 +59,14 @@ company_sup_chains <- comp_vessels %>%
 vessels <- comp_vessels %>% 
   filter(c == company,
          c_listname == sup_chain)
+
+# Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
+bb_fiji <- comp_vessels %>% 
+  filter(c %in% c("Bumble Bee"),
+         c_listname %in% c("Tuna"),
+         c_flag %in% c("Fiji"),
+         str_detect(gfw_eez, "FJI"))
+
 ```
 
 ## General report values
@@ -80,14 +87,11 @@ vessels <- comp_vessels %>%
 #                      by = c("c", "c_listname", "c_name")
 # )
 
-# Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
-bb_fiji <- comp_vessels %>% 
-  filter(c %in% c("Bumble Bee"),
-         c_listname %in% c("Tuna"),
-         c_flag %in% c("Fiji"),
-         str_detect(gfw_eez, "Fiji"))
+create_report_general(bb_fiji)
 
-report_general <- bb_fiji %>% 
+
+# OG code
+report_general <- supply_chain %>% 
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
             "vessels_total_n" = length(v_id),
@@ -134,6 +138,26 @@ report_kde_bb_fiji <- bb_fiji %>%
 
 
 ```{r functions}
+
+# create report of general supply chain summary stats
+create_report_general <- function(supply_chain){
+  report_general <- supply_chain %>% 
+  summarize("company" = unique(c),
+            "supply_chain" = unique(c_listname),
+            "vessels_total_n" = length(v_id),
+            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
+            "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
+            "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_max" = max(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_median" = median(vv_ais_coverage_percent, na.rm = T),
+            "prct_ais_cover_mean" = mean(vv_ais_coverage_percent, na.rm = T)
+            )
+  name <- paste0("report_general_", deparse(substitute(supply_chain)))
+   assign(name, 
+          report_general, 
+          envir = parent.frame())
+  return(report_general)
+}
 
 # create checklist of Key data elements (kde) for each company supply chain
 # assesses completeness of data company provided

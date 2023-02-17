@@ -103,8 +103,10 @@ create_report_general <- function(supply_chain){
 check_kde_data <- function(company, supplychain){
   df <- comp_vessels %>% 
     filter(c %in% company & c_listname %in% supplychain) %>% 
-    summarize("company" = company,
-              "supply_chain" = supplychain,
+    summarize("c_name" = c_name,
+            "c_listname" = c_listname,
+            "company" = company,
+            "supply_chain" = supplychain,
             "species" = any(!is.na(c_species) | !is.na(c_common_name)),
             "country_harvest" = any(!is.na(c_country)),
             "ports_landing" = any(!is.na(c_port)),
@@ -127,7 +129,8 @@ check_kde_data <- function(company, supplychain){
 
 create_report_ind_vv <- function(supply_chain){
   indicators <-supply_chain %>% 
-  summarize(
+  summarize("c" = c,
+            "c_listname" = c_listname,
       # High Risk Indicators      
             "iuu_listed" = sum((vv_iuu_listed)),
             "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
@@ -367,68 +370,33 @@ nrow(port_match) / nrow(vessels)
   
 ```
 
-```{r function_doughnut}
-make_doughnut <- function(indicator) {
-  fig_data <- indicator %>%
-    select(data_vessels, nodata_vessels) %>%
-    pivot_longer(
-      cols = c(data_vessels, nodata_vessels),
-      names_to = "data",
-      values_to = "count"
-    ) %>%
-    mutate(fraction = count / sum(count))
-  fig_data$ymax = cumsum(fig_data$fraction)
-  fig_data$ymin <- c(0, head(fig_data$ymax, n = -1))
-  
-  
-  # doughnut color
-  
-  dough_color <- c("#0074DD", "#9BCCFD")
-  
-  # doughnut figure
-  doughnut <- ggplot(fig_data,
-                     aes(
-                       ymax = ymax,
-                       ymin = ymin,
-                       xmax = 4,
-                       xmin = 3,
-                       fill = data
-                     )) +
-    geom_rect() +
-    # Try to remove that to understand how the chart is built initially
-    coord_polar(theta = "y") +
-    # adjust thickness
-    xlim(c(0, 4)) +
-    theme_void() +
-    scale_fill_manual(values = dough_color) +
-    #scale_color_manual(values = dough_color) +
-    theme(legend.position = "none")
-  
-  ggsave(doughnut,
-         filename = file.path(fig_dir,
-                              paste0("doughnut_", 
-                                     deparse(substitute(indicator)), 
-                                     ".png")),
-           width = 0.5,
-           height = 0.5,
-           units = "in",
-           dpi = 600
-         )
-}
-
-# calc percent vessels with data
-calc_prt_vessels <- function(indicator){
-  indicator$data_vessels/(indicator$data_vessels + indicator$nodata_vessels)
-}
-
-
-```
-
 ## High Priority
 
 ```{r High_priority}
 #### IUU Listed Vessels
-
+indicators_BQ <-nesi_srilanka %>% 
+  summarize(
+      # High Risk Indicators      
+            "iuu_listed" = sum((vv_iuu_listed)),
+            "rfmo_no_auth_events" = NA,
+            "rfmo_no_auth_vessels_n" = NA,
+            "transship_rfmo_events" = sum(gfw_n_transship_unauthorized),
+            "transship_rfmo_vessels_n" = sum(gfw_n_transship_unauthorized > 0),
+            "mpa_events" = sum(gfw_fishing_hr_mpa),
+            "mpa_vessels_n" = sum(gfw_fishing_hr_mpa > 0),
+            "mpa_total_hrs" = sum(gfw_fishing_hr_mpa),
+      # Medium Risk Indicators
+            "ais_disabling_events" = NA,
+            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
+            "ais_disabling_total_hrs" = NA,
+            "ais_prop_cover_2yr_min" = min(gfw_prop_ais_coverage, na.rm = T),
+            "ais_prop_cover_2yr_max" = max(gfw_prop_ais_coverage, na.rm = T),
+            "ais_prop_cover_2yr_median" = median(gfw_prop_ais_coverage, na.rm = T),
+            # number of vessels with trips > 11 months
+            "vessels_long_trip_n" = sum(map_long_trip_n),
+            "vessels_name_change_n" = sum(vv_name_change),
+            "vessels_flag_change_n" = sum(vv_flag_change)
+  )
 #### Unauthorized Fishing in RFMO
 
 #### MPA Fishing hours 
@@ -440,11 +408,6 @@ mpa_hr <- vessels %>%
            "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
            "mpa_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T)
            )
-# make vessel data availability doughnut figure
-make_doughnut(mpa_hr)
-
-# vessels with data
-calc_prt_vessels(mpa_hr)
 
 #### Unauthorized Transshipment
 
@@ -454,8 +417,7 @@ un_tship <- vessels %>%
             "nodata_vessels" = length(vessels$gfw_n_transship_unauthorized[which(is.na(vessels$gfw_n_transship_unauthorized))]),
             "n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T)
             )
-make_doughnut(un_tship)
-calc_prt_vessels(un_tship)
+
 ```
 
 ## Medium Priority

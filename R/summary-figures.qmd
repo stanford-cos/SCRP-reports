@@ -103,9 +103,7 @@ create_report_general <- function(supply_chain){
 check_kde_data <- function(company, supplychain){
   df <- comp_vessels %>% 
     filter(c %in% company & c_listname %in% supplychain) %>% 
-    summarize("c_name" = c_name,
-            "c_listname" = c_listname,
-            "company" = company,
+    summarize("company" = company,
             "supply_chain" = supplychain,
             "species" = any(!is.na(c_species) | !is.na(c_common_name)),
             "country_harvest" = any(!is.na(c_country)),
@@ -127,10 +125,11 @@ check_kde_data <- function(company, supplychain){
   return(df)
 }
 
+# Generate Risk Indicators for report with vessel viewer values
 create_report_ind_vv <- function(supply_chain){
-  indicators <-supply_chain %>% 
-  summarize("c" = c,
-            "c_listname" = c_listname,
+  indicators <- supply_chain %>% 
+  summarize("company" = c,
+            "supply_chain" = c_listname,
       # High Risk Indicators      
             "iuu_listed" = sum((vv_iuu_listed)),
             "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
@@ -154,6 +153,24 @@ create_report_ind_vv <- function(supply_chain){
   )
   name <- paste0("report_ind_vv_", deparse(substitute(supply_chain)))
   assign(name, indicators, envir = parent.frame())
+  return(indicators)
+}
+
+# Contexual Indicators
+create_context <- function(supply_chain){
+  context <- supply_chain %>% 
+  summarise("company" = unique(c),
+            "supply_chain" = unique(c_listname),
+            "cpi" = NA,
+            "psma" = paste(unique(m_c_psma), sep = ";"),
+            "eu_card" = paste(unique(m_c_eu_flag), sep = ";"),
+            "us_card" = paste(unique(m_c_us_flag), sep = ";"),
+            "simp" = paste(unique(m_c_or_flag), sep = ";"),
+            "petrossian_clark" = paste(unique(m_petro_score), sep = ";"),
+            "open_registry" = paste(unique(m_c_or_flag), sep = ";")
+            )
+  name <- paste0("report_context_", deparse(substitute(supply_chain)))
+  assign(name, context, envir = parent.frame())
   return(indicators)
 }
 ```
@@ -184,9 +201,9 @@ create_report_ind_vv(bb_fiji)
 
 ```
 
-```{r bb_kde}
+```{r report_big_query}
 
-report_kde_nesi_srilanka <- nesi_srilanka %>%
+bq_kde_nesi_sl <- nesi_srilanka %>%
   summarize(
     "company" = unique(c),
     "supply_chain" = unique(c_listname),
@@ -213,9 +230,52 @@ report_kde_nesi_srilanka <- nesi_srilanka %>%
     "transship_reported" = NA
   ) 
 
+bq_indicators_nesi_sl <-nesi_srilanka %>% 
+  summarize("company" = unique(c),
+            "supply_chain" = unique(c_listname),
+      # High Risk Indicators      
+            "iuu_listed" = sum((vv_iuu_listed)),
+            "rfmo_no_auth_events" = NA,
+            "rfmo_no_auth_vessels_n" = NA,
+            "transship_rfmo_events" = sum(gfw_n_transship_unauthorized),
+            "transship_rfmo_vessels_n" = sum(gfw_n_transship_unauthorized > 0),
+            "mpa_events" = sum(gfw_fishing_hr_mpa),
+            "mpa_vessels_n" = sum(gfw_fishing_hr_mpa > 0),
+            "mpa_total_hrs" = sum(gfw_fishing_hr_mpa),
+      # Medium Risk Indicators
+            "ais_disabling_events" = NA,
+            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
+            "ais_disabling_total_hrs" = NA,
+            "ais_prop_cover_2yr_min" = min(gfw_prop_ais_coverage, na.rm = T),
+            "ais_prop_cover_2yr_max" = max(gfw_prop_ais_coverage, na.rm = T),
+            "ais_prop_cover_2yr_median" = median(gfw_prop_ais_coverage, na.rm = T),
+            # number of vessels with trips > 11 months
+            "vessels_long_trip_n" = sum(map_long_trip_n),
+            "vessels_name_change_n" = sum(vv_name_change),
+            "vessels_flag_change_n" = sum(vv_flag_change)
+  )
+
+
+
 ```
 
 
+```{r kde_checklist_all}
+
+# create kde checklist for all supply chains
+kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_listname, check_kde_data)
+
+```
+
+```{r quick_summary_jim}
+summary_jim <- comp_vessels %>% 
+  group_by(c, c_listname) %>% 
+  summarize(num_vessels = length(c_name),
+            num_vessels_ais = sum(!is.na(gfw_prop_ais_coverage)),
+            percent_vessels_ais = num_vessels_ais / num_vessels *100,
+            mean_ais_prop = mean(gfw_prop_ais_coverage, na.rm = T),
+            med_ais_prop = median(gfw_prop_ais_coverage, na.rm = T))
+```
 
 
 ## KDE checklist
@@ -237,24 +297,6 @@ report_kde_nesi_srilanka <- nesi_srilanka %>%
 -   Vessel flag state (optional)
 -   AIS data
 -   Reported transshipments
-
-```{r kde_checklist}
-
-# create kde checklist for all supply chains
-kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_listname, check_kde_data)
-
-```
-
-```{r quick_summary_jim}
-summary_jim <- comp_vessels %>% 
-  group_by(c, c_listname) %>% 
-  summarize(num_vessels = length(c_name),
-            num_vessels_ais = sum(!is.na(gfw_prop_ais_coverage)),
-            percent_vessels_ais = num_vessels_ais / num_vessels *100,
-            mean_ais_prop = mean(gfw_prop_ais_coverage, na.rm = T),
-            med_ais_prop = median(gfw_prop_ais_coverage, na.rm = T))
-```
-
 
 ## List of IUU report indicators
 
@@ -308,151 +350,16 @@ iuu_name <- iuu_listed %>%
 -   US listing status
 -   SIMP
 -   Petrossian & Clark (2014) score
+-   Open Registries (vessel flag country)
 
-```{r key_data_elements}
 
-#### mmsi
-mmsi <- vessels %>% 
-  select(c_mmsi) %>% 
-  filter(c_mmsi > 0)
 
-# % of vessels with mmsi 
-nrow(mmsi) / nrow(vessels)
+```{r context_indicators}
 
-# gfw mmsi found
-mmsi_gfw <- vessels %>% 
-  select(gfw_mmsi) %>% 
-  filter(gfw_mmsi > 0)
 
-nrow(mmsi_gfw) / nrow(vessels)
-
-##### AIS disabled
-
-ais_dis <- vessels %>% 
-  select(gfw_prop_ais_disable) %>% 
-  filter(gfw_prop_ais_disable > 0)
-  
-nrow(ais_dis)
-
-##### AIS availability
-ais_avl <- vessels %>% 
-  select(m_AIS, gfw_prop_ais_coverage) %>% 
-  filter(m_AIS == "Have AIS for this vessel")
-
-# percent vessels with AIS
-nrow(ais_avl) / nrow(vessels)
-
-ais_gfw <- vessels %>% 
-  select(m_AIS, gfw_prop_ais_coverage) %>% 
-  drop_na()
-
-# percent vessels picked up by GFW
-nrow(ais_gfw) / nrow(vessels)
-
-# percent with AIS coverage
-ais_cover <- vessels %>% 
-  select(gfw_prop_ais_coverage) %>%
-  filter(gfw_prop_ais_coverage > 0)
-# percent of all vessels 
-nrow(ais_cover) / nrow(vessels)
-
-range(ais_cover)
-
-###### Port Matching 
-port_match <- vessels %>% 
-  select(port_matching) %>% 
-  na.omit() %>% 
-  filter(!port_matching %in% c("No AIS coverage", "AIS turned off before port entry"))
-
-nrow(port_match) / nrow(vessels)
 
 
   
-```
-
-## High Priority
-
-```{r High_priority}
-#### IUU Listed Vessels
-indicators_BQ <-nesi_srilanka %>% 
-  summarize(
-      # High Risk Indicators      
-            "iuu_listed" = sum((vv_iuu_listed)),
-            "rfmo_no_auth_events" = NA,
-            "rfmo_no_auth_vessels_n" = NA,
-            "transship_rfmo_events" = sum(gfw_n_transship_unauthorized),
-            "transship_rfmo_vessels_n" = sum(gfw_n_transship_unauthorized > 0),
-            "mpa_events" = sum(gfw_fishing_hr_mpa),
-            "mpa_vessels_n" = sum(gfw_fishing_hr_mpa > 0),
-            "mpa_total_hrs" = sum(gfw_fishing_hr_mpa),
-      # Medium Risk Indicators
-            "ais_disabling_events" = NA,
-            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
-            "ais_disabling_total_hrs" = NA,
-            "ais_prop_cover_2yr_min" = min(gfw_prop_ais_coverage, na.rm = T),
-            "ais_prop_cover_2yr_max" = max(gfw_prop_ais_coverage, na.rm = T),
-            "ais_prop_cover_2yr_median" = median(gfw_prop_ais_coverage, na.rm = T),
-            # number of vessels with trips > 11 months
-            "vessels_long_trip_n" = sum(map_long_trip_n),
-            "vessels_name_change_n" = sum(vv_name_change),
-            "vessels_flag_change_n" = sum(vv_flag_change)
-  )
-#### Unauthorized Fishing in RFMO
-
-#### MPA Fishing hours 
-
-mpa_hr <- vessels %>% 
-  select(gfw_fishing_hr_mpa) %>% 
-  summarize("data_vessels" = sum(!is.na(gfw_fishing_hr_mpa)),
-            "nodata_vessels" = sum(is.na(gfw_fishing_hr_mpa)),
-           "mpa_vessels" = length(vessels$gfw_fishing_hr_mpa[which(vessels$gfw_fishing_hr_mpa > 0)]),
-           "mpa_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T)
-           )
-
-#### Unauthorized Transshipment
-
-un_tship <- vessels %>% 
-  select(gfw_n_transship_unauthorized) %>% 
-  summarize("data_vessels" = length(vessels$gfw_n_transship_unauthorized[which(!is.na(vessels$gfw_n_transship_unauthorized))]),
-            "nodata_vessels" = length(vessels$gfw_n_transship_unauthorized[which(is.na(vessels$gfw_n_transship_unauthorized))]),
-            "n_unauth" = sum(gfw_n_transship_unauthorized, na.rm = T)
-            )
-
-```
-
-## Medium Priority
-
-```{r}
-## Vessel Name Changes 
-
-## Vessel Flag Changes 
-
-## Intentional AIS Disabling
-ais_dis <- vessels %>% 
-  select(gfw_prop_ais_disable) %>% 
-  summarize("data_vessels" = length(vessels$gfw_prop_ais_disable[which(!is.na(vessels$gfw_prop_ais_disable))]),
-            "nodata_vessels" = length(vessels$gfw_prop_ais_disable[which(is.na(vessels$gfw_prop_ais_disable))]),
-            "n_vessels_dis" = length(vessels$gfw_prop_ais_disable[which(vessels$gfw_prop_ais_disable > 0)])
-            )
-
-make_doughnut(ais_dis)
-calc_prt_vessels(ais_dis)
-
-## Long Fishing Trips
-
-long_trip <- vessels %>% 
-  select(gfw_n_long_trips) %>% 
-  summarize("data_vessels" = length(vessels$gfw_n_long_trips[which(!is.na(vessels$gfw_n_long_trips))]),
-            "nodata_vessels" = length(vessels$gfw_n_long_trips[which(is.na(vessels$gfw_n_long_trips))]),
-            "n_longtrip" = sum(gfw_n_long_trips, na.rm = T))
-
-make_doughnut(long_trip)
-calc_prt_vessels(long_trip)
-```
-
-## Low Priority
-
-```{r}
 ## EU Carding Status 
 card_eu <- vessels %>% 
   select(m_c_eu_flag) 

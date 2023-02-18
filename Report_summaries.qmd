@@ -10,7 +10,9 @@ editor: visual
 
 # set universal code chunk options, suppress warning and messages
 knitr::opts_chunk$set(warning = F, message = F)
+```
 
+```{r packages_directories}
 # package and R version control for reproducibility 
 library("groundhog")
 # list additional packages in vector below

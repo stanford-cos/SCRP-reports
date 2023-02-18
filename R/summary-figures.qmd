@@ -201,23 +201,7 @@ create_context <- function(supply_chain, foc_list){
 }
 ```
 
-## General report values
-
--   Number of vessels in supply chain
--   AIS positions found for percent of supply chain vessels
--   Range AIS coverage percent in last year for supply chain
-
 ```{r generate_report_values}
-
-# merged first round of vessel viewer numbers back into CompiledVesselsIndicators table
-
-# bb_tuna <- read_csv(file.path(data_dir,"vessel_indicators_vv_marks_2023-02-15.csv"))
-# 
-# joined_vessels <- comp_vessels %>%
-#   left_join(bb_tuna %>%
-#               select(c, c_listname, c_name, 66:82),
-#                      by = c("c", "c_listname", "c_name")
-# )
 
 report_generally(bb_fiji)
 
@@ -227,15 +211,6 @@ assess_risk(bb_fiji)
 
 create_context(bb_fiji, itf_foc)
 
-
-df_left <- data.frame(c_flag = c("a;b;c", "d;e;f", "g;h;i"))
-df_right <- data.frame(c_flag = c("b", "e", "h"), value = c(1, 2, 3))
-df_join <- df_left %>%
-  filter(str_detect(c_flag, paste(df_right$c_flag, collapse = "|"))) #%>%
-  #left_join(df_right, by = "c_flag")
-
-# Output the result
-df_join
 ```
 
 ```{r report_big_query}
@@ -296,7 +271,6 @@ bq_indicators_nesi_sl <-nesi_srilanka %>%
 
 ```
 
-
 ```{r kde_checklist_all}
 
 # create kde checklist for all supply chains
@@ -314,6 +288,11 @@ summary_jim <- comp_vessels %>%
             med_ais_prop = median(gfw_prop_ais_coverage, na.rm = T))
 ```
 
+## General report values
+
+-   Number of vessels in supply chain
+-   AIS positions found for percent of supply chain vessels
+-   Range AIS coverage percent in last year for supply chain
 
 ## KDE checklist
 
@@ -388,26 +367,3 @@ iuu_name <- iuu_listed %>%
 -   SIMP
 -   Petrossian & Clark (2014) score
 -   Open Registries (vessel flag country)
-
-
-
-
-```{r context_indicators}
-
-
-
-
-  
-## EU Carding Status 
-card_eu <- vessels %>% 
-  select(m_c_eu_flag) 
-
-unique(card_eu)
-
-## US Carding Status
-card_us <- vessels %>% 
-  select(m_c_us_flag) 
-
-unique(card_us)
-
-```

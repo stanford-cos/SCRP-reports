@@ -1,6 +1,12 @@
-.Rproj.user
+.Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
+.Rcheck/
+NAMESPACE
 data/*
+*.tar.gz
+*.log
+*.out
+.DS_Store
 reports/*

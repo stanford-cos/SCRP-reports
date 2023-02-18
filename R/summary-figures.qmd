@@ -19,7 +19,8 @@ pkgs <- c(
   "tidyverse", 
   "magrittr",
   "readxl",
-  "purrr") 
+  "purrr",
+  "rvest") 
 # Keep this date set to load package versions corresponding with date
 groundhog.library(pkgs, "2023-01-01")
 
@@ -76,12 +77,28 @@ nesi_srilanka <- comp_vessels %>%
 
 ```
 
+```{r scrape_open_registries}
+
+# scrape FOC list from ITF Seafarers (International Transport Workers Federation)
+itf_foc <- read_html("https://www.itfseafarers.org/en/focs/current-registries-listed-as-focs") %>% 
+  html_node(xpath = "/html/body/div[1]/div/div[2]/main/div[2]/div/div/div[3]/article/div/div[1]/ul") %>% 
+  html_elements("li") %>% 
+  html_text2() %>% 
+  as_tibble() %>% 
+  rename("c_flag" = value) # name variable column
+
+# vessels with flags that match in ITF FOC list
+# foc_vessels <- vessel_assess %>% 
+#   semi_join(itf_foc, by = "Flag")
+
+```
+
 ## Functions used to generate report numbers
 
 ```{r functions}
 
 # create report of general supply chain summary stats
-create_report_general <- function(supply_chain){
+report_generally <- function(supply_chain){
   report_general <- supply_chain %>% 
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
@@ -100,11 +117,10 @@ create_report_general <- function(supply_chain){
 
 # create checklist of Key data elements (kde) for each company supply chain
 # assesses completeness of data company provided
-check_kde_data <- function(company, supplychain){
-  df <- comp_vessels %>% 
-    filter(c %in% company & c_listname %in% supplychain) %>% 
-    summarize("company" = company,
-            "supply_chain" = supplychain,
+check_kde_list <- function(supply_chain){
+  kde <- supply_chain %>% 
+    summarize("company" = unique(c),
+            "supply_chain" = unique(c_listname),
             "species" = any(!is.na(c_species) | !is.na(c_common_name)),
             "country_harvest" = any(!is.na(c_country)),
             "ports_landing" = any(!is.na(c_port)),
@@ -122,14 +138,16 @@ check_kde_data <- function(company, supplychain){
             "ais_data" = any(!is.na(gfw_prop_ais_coverage)),
             "transship_reported" = NA
             ) 
-  return(df)
+  name <- paste0("report_kde_check_", deparse(substitute(supply_chain)))
+  assign(name, kde, envir = parent.frame())
+  return(kde)
 }
 
 # Generate Risk Indicators for report with vessel viewer values
-create_report_ind_vv <- function(supply_chain){
+assess_risk <- function(supply_chain){
   indicators <- supply_chain %>% 
-  summarize("company" = c,
-            "supply_chain" = c_listname,
+  summarize("company" = unique(c),
+            "supply_chain" = unique(c_listname),
       # High Risk Indicators      
             "iuu_listed" = sum((vv_iuu_listed)),
             "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
@@ -156,22 +174,30 @@ create_report_ind_vv <- function(supply_chain){
   return(indicators)
 }
 
-# Contexual Indicators
-create_context <- function(supply_chain){
+# Contextual Indicators
+create_context <- function(supply_chain, foc_list){
   context <- supply_chain %>% 
   summarise("company" = unique(c),
             "supply_chain" = unique(c_listname),
+            "vessel_flags" = paste(unique(c_flag), sep = ";"),
             "cpi" = NA,
             "psma" = paste(unique(m_c_psma), sep = ";"),
+            # these need to use vessel flag not country of operation
             "eu_card" = paste(unique(m_c_eu_flag), sep = ";"),
             "us_card" = paste(unique(m_c_us_flag), sep = ";"),
             "simp" = paste(unique(m_c_or_flag), sep = ";"),
-            "petrossian_clark" = paste(unique(m_petro_score), sep = ";"),
-            "open_registry" = paste(unique(m_c_or_flag), sep = ";")
+            "petrossian_clark" = paste(unique(m_petro_score), sep = ";")
+          #  "open_registry" = paste(unique(m_c_or_flag), sep = ";")
             )
+  # True if vessel flags are on FOC list, False if not
+  foc <- any(str_detect(foc_list$c_flag, paste(context$vessel_flags, collapse = "|")))
+  # add foc to output
+  context_2 <- context %>% 
+    mutate("open_registry" = foc)
+  
   name <- paste0("report_context_", deparse(substitute(supply_chain)))
-  assign(name, context, envir = parent.frame())
-  return(indicators)
+  assign(name, context_2, envir = parent.frame())
+  return(context_2)
 }
 ```
 
@@ -181,7 +207,7 @@ create_context <- function(supply_chain){
 -   AIS positions found for percent of supply chain vessels
 -   Range AIS coverage percent in last year for supply chain
 
-```{r report_values}
+```{r generate_report_values}
 
 # merged first round of vessel viewer numbers back into CompiledVesselsIndicators table
 
@@ -193,12 +219,23 @@ create_context <- function(supply_chain){
 #                      by = c("c", "c_listname", "c_name")
 # )
 
-create_report_general(bb_fiji)
+report_generally(bb_fiji)
 
-check_kde_data(bb_fiji)
+check_kde_list(bb_fiji)
 
-create_report_ind_vv(bb_fiji)
+assess_risk(bb_fiji)
 
+create_context(bb_fiji, itf_foc)
+
+
+df_left <- data.frame(c_flag = c("a;b;c", "d;e;f", "g;h;i"))
+df_right <- data.frame(c_flag = c("b", "e", "h"), value = c(1, 2, 3))
+df_join <- df_left %>%
+  filter(str_detect(c_flag, paste(df_right$c_flag, collapse = "|"))) #%>%
+  #left_join(df_right, by = "c_flag")
+
+# Output the result
+df_join
 ```
 
 ```{r report_big_query}
@@ -354,6 +391,7 @@ iuu_name <- iuu_listed %>%
 
 
 
+
 ```{r context_indicators}
 
 
@@ -372,10 +410,4 @@ card_us <- vessels %>%
 
 unique(card_us)
 
-## IUU Species Risk
-
-iuu_species <- vessels %>% 
-  select(m_petro_score)
-
-unique(iuu_species)
 ```

@@ -10,3 +10,4 @@ data/*
 *.out
 .DS_Store
 reports/*
+*.Rproj

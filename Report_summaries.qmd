@@ -27,24 +27,26 @@ pkgs <- c(
 groundhog.library(pkgs, "2023-01-01")
 
 ## Set up directories - need to fix
-if(dir.exists(file.path("../figures"))){
-  fig_dir <- file.path("../figures")
-} else{dir.create(file.path("../figures"))
-  fig_dir <- file.path("../figures")
+if(dir.exists(file.path("./figures"))){
+  fig_dir <- file.path("./figures")
+} else{dir.create(file.path("./figures"))
+  fig_dir <- file.path("./figures")
 }
 
-if(dir.exists(file.path("../data"))){
-  data_dir <- file.path("../data")
-} else{dir.create(file.path("../data"))
-  data_dir <- file.path("../data")
+if(dir.exists(file.path("./data"))){
+  data_dir <- file.path("./data")
+} else{dir.create(file.path("./data"))
+  data_dir <- file.path("./data")
 }
+
+output_dir <- file.path("./output")
 ```
 
 ## Read in Data
 
 ```{r Import_Data}
 ## Compiled vessel data
-comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-15.csv"))
+comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-21.csv"))
 
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
@@ -151,7 +153,7 @@ assess_risk <- function(supply_chain){
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
       # High Risk Indicators      
-            "iuu_listed" = sum((vv_iuu_listed)),
+            "iuu_listed" = sum(as.numeric(vv_iuu_listed)),
             "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
             "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0),
             "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized),
@@ -187,9 +189,9 @@ create_context <- function(supply_chain, foc_list){
             # these need to use vessel flag not country of operation
             "eu_card" = paste(unique(m_c_eu_flag), sep = ";"),
             "us_card" = paste(unique(m_c_us_flag), sep = ";"),
-            "simp" = paste(unique(m_c_or_flag), sep = ";"),
-            "petrossian_clark" = paste(unique(m_petro_score), sep = ";")
-          #  "open_registry" = paste(unique(m_c_or_flag), sep = ";")
+            "simp" = NA, # could create list of species or scrape
+            "petrossian_clark" = paste(unique(m_petro_score), sep = ";"),
+            "pvr" = paste(unique(me_pvr_status), sep = ";")
             )
   # True if vessel flags are on FOC list, False if not
   foc <- any(str_detect(foc_list$c_flag, paste(context$vessel_flags, collapse = "|")))
@@ -203,15 +205,26 @@ create_context <- function(supply_chain, foc_list){
 }
 ```
 
+```{r vessels_with_risk}
+# identify specific vessels that were flagged with High and Medium Risk Indicators
+risky_vessels <- comp_vessels %>% 
+  filter(vv_iuu_listed == TRUE | vv_rfmo_unauthorized_events > 0 | vv_encounters_rfmo_unauthorized > 0 |
+          vv_mpa_events > 0 | vv_ais_disabled_n > 0 | map_long_trip_n > 0 | vv_name_change > 0 | vv_flag_change > 0) %>% 
+  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, 70:length(comp_vessels))
+
+# write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
+```
+
+
 ```{r generate_report_values}
 
-report_generally(bb_fiji)
+report_generally(nesi_srilanka)
 
-check_kde_list(bb_fiji)
+check_kde_list(nesi_srilanka)
 
-assess_risk(bb_fiji)
+assess_risk(nesi_srilanka)
 
-create_context(bb_fiji, itf_foc)
+create_context(nesi_srilanka, itf_foc)
 
 ```
 
@@ -241,6 +254,9 @@ bq_kde_nesi_sl <- nesi_srilanka %>%
     "vessel_flag_n" = sum(!is.na(c_flag)),
     "ais_data" = any(!is.na(gfw_prop_ais_coverage)),
     "ais_data_n" = sum(!is.na(gfw_prop_ais_coverage)),
+    "ais_coverage_min" = min(gfw_prop_ais_coverage, na.rm = T),
+    "ais_coverage_max" = max(gfw_prop_ais_coverage, na.rm = T),
+    "ais_coverage_median" = median(gfw_prop_ais_coverage, na.rm = T),
     "transship_reported" = NA
   ) 
 
@@ -248,25 +264,25 @@ bq_indicators_nesi_sl <-nesi_srilanka %>%
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
       # High Risk Indicators      
-            "iuu_listed" = sum((vv_iuu_listed)),
+            "iuu_listed" = sum(as.numeric(vv_iuu_listed), na.rm = T),
             "rfmo_no_auth_events" = NA,
             "rfmo_no_auth_vessels_n" = NA,
-            "transship_rfmo_events" = sum(gfw_n_transship_unauthorized),
-            "transship_rfmo_vessels_n" = sum(gfw_n_transship_unauthorized > 0),
-            "mpa_events" = sum(gfw_fishing_hr_mpa),
-            "mpa_vessels_n" = sum(gfw_fishing_hr_mpa > 0),
-            "mpa_total_hrs" = sum(gfw_fishing_hr_mpa),
+            "transship_rfmo_events" = sum(gfw_n_transship_unauthorized, na.rm = T),
+            "transship_rfmo_vessels_n" = sum(gfw_n_transship_unauthorized > 0, na.rm = T),
+            "mpa_events" = sum(gfw_n_trips_mpa > 0, na.rm = T),
+            "mpa_vessels_n" = sum(gfw_n_trips_mpa > 0 , na.rm = T),
+            "mpa_total_hrs" = sum(gfw_fishing_hr_mpa, na.rm = T),
       # Medium Risk Indicators
             "ais_disabling_events" = NA,
-            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
+            "ais_disabling_vessels_n" = sum(gfw_prop_ais_disable > 0, na.rm = T ),
             "ais_disabling_total_hrs" = NA,
             "ais_prop_cover_2yr_min" = min(gfw_prop_ais_coverage, na.rm = T),
             "ais_prop_cover_2yr_max" = max(gfw_prop_ais_coverage, na.rm = T),
             "ais_prop_cover_2yr_median" = median(gfw_prop_ais_coverage, na.rm = T),
             # number of vessels with trips > 11 months
-            "vessels_long_trip_n" = sum(map_long_trip_n),
-            "vessels_name_change_n" = sum(vv_name_change),
-            "vessels_flag_change_n" = sum(vv_flag_change)
+            "vessels_long_trip_n" = sum(map_long_trip_n, na.rm = T),
+            "vessels_name_change_n" = sum(vv_name_change, na.rm = T),
+            "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
   )
 
 
@@ -332,7 +348,6 @@ summary_jim <- comp_vessels %>%
 -   Vessels with long fishing trips (\>11 mo)
 -   Number of vessel name changes in last year
 -   Number of vessel flag changes in last year
-
 
 ```{r iuu_vessel_list}
 

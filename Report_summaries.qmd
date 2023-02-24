@@ -46,7 +46,7 @@ output_dir <- file.path("./output")
 
 ```{r Import_Data}
 ## Compiled vessel data
-comp_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-21.csv"))
+all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-21.csv"))
 
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
@@ -57,24 +57,24 @@ sup_chain <- "Sri Lanka Yellowfin"
 
 # summarize of companies and their supply chains
 ######### IDEA - How to create a dataframe that can list what variables to filter Compiled Vessels Indicators by (not set variables across supply chains) that could feed a function generating individual supply chain dataframes
-company_sup_chains <- comp_vessels %>% 
+company_sup_chains <- all_vessels %>% 
   group_by(c, c_listname) %>% 
   summarize()
 
 ## Filter data by company & supply chain
-vessels <- comp_vessels %>% 
+vessels <- all_vessels %>% 
   filter(c == company,
          c_listname == sup_chain)
 
 # Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
-bb_fiji <- comp_vessels %>% 
+bb_fiji <- all_vessels %>% 
   filter(c %in% c("Bumble Bee"),
          c_listname %in% c("Tuna"),
          c_flag %in% c("Fiji"),
          str_detect(gfw_eez, "FJI"))
 
 # NESI Sri Lanka Yellowfin 
-nesi_srilanka <- comp_vessels %>% 
+nesi_srilanka <- all_vessels %>% 
   filter(c %in% c("NESI"),
          c_listname %in% c("Sri Lanka Yellowfin"),
          c_flag %in% c("Sri Lanka"))
@@ -102,7 +102,7 @@ itf_foc <- read_html("https://www.itfseafarers.org/en/focs/current-registries-li
 ```{r functions}
 
 # create report of general supply chain summary stats
-report_generally <- function(supply_chain){
+speak_generally <- function(supply_chain){
   report_general <- supply_chain %>% 
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
@@ -114,7 +114,7 @@ report_generally <- function(supply_chain){
             "prct_ais_cover_median" = median(vv_ais_coverage_percent, na.rm = T),
             "prct_ais_cover_mean" = mean(vv_ais_coverage_percent, na.rm = T)
             )
-  name <- paste0("report_general_", deparse(substitute(supply_chain)))
+  name <- paste0("rep_1_general_", deparse(substitute(supply_chain)))
   assign(name, report_general, envir = parent.frame())
   return(report_general)
 }
@@ -142,7 +142,7 @@ check_kde_list <- function(supply_chain){
             "ais_data" = any(!is.na(gfw_prop_ais_coverage)),
             "transship_reported" = NA
             ) 
-  name <- paste0("report_kde_check_", deparse(substitute(supply_chain)))
+  name <- paste0("rep_2_kde_", deparse(substitute(supply_chain)))
   assign(name, kde, envir = parent.frame())
   return(kde)
 }
@@ -173,13 +173,13 @@ assess_risk <- function(supply_chain){
             "vessels_name_change_n" = sum(vv_name_change),
             "vessels_flag_change_n" = sum(vv_flag_change)
   )
-  name <- paste0("report_ind_vv_", deparse(substitute(supply_chain)))
+  name <- paste0("rep_3_ind_vv_", deparse(substitute(supply_chain)))
   assign(name, indicators, envir = parent.frame())
   return(indicators)
 }
 
 # Contextual Indicators
-create_context <- function(supply_chain, foc_list){
+give_context <- function(supply_chain, foc_list){
   context <- supply_chain %>% 
   summarise("company" = unique(c),
             "supply_chain" = unique(c_listname),
@@ -199,18 +199,85 @@ create_context <- function(supply_chain, foc_list){
   context_2 <- context %>% 
     mutate("open_registry" = foc)
   
-  name <- paste0("report_context_", deparse(substitute(supply_chain)))
+  name <- paste0("rep_4_context_", deparse(substitute(supply_chain)))
   assign(name, context_2, envir = parent.frame())
   return(context_2)
 }
+
+#count_ind <- nesi_srilanka %>% 
+detail_vessels <- function(supply_chain) {
+  detail <- supply_chain %>%
+    rowwise() %>% 
+    mutate(
+      # True/False of flagged indicator
+      "iuu_logic" = vv_iuu_listed > 0,
+      "unauth_rfmo_fish_logic" = vv_rfmo_unauthorized_events > 0,
+      "unauth_trans_logic" = vv_encounters_rfmo_unauthorized > 0,
+      "mpa_events_logic" = vv_mpa_events > 0,
+      "disable_events_logic" = vv_ais_disabled_n > 0,
+      "long_trip_logic" = map_long_trip_n > 0,
+      "name_logic" = vv_name_change > 0,
+      "flag_logic" = vv_flag_change > 0,
+      # High risk
+      "count_high_ind" = sum(c_across(c(iuu_logic,
+                             unauth_rfmo_fish_logic,
+                             unauth_trans_logic,
+                             mpa_events_logic)), na.rm = TRUE),
+      "iuu_listed" = vv_iuu_listed,
+      "unauth_rfmo_fish_events" = vv_rfmo_unauthorized_events,
+      "unauth_transship_events" = vv_encounters_rfmo_unauthorized,
+      "mpa_fishing_events" = vv_mpa_events,
+      "mpa_fishing_hours" = vv_mpa_hrs,
+      # Medium
+      "count_med_ind" = sum(c_across(c(disable_events_logic,
+                             long_trip_logic,
+                             name_logic,
+                             flag_logic)), na.rm = TRUE),
+      "disable_events" = vv_ais_disabled_n,
+      "disable_hours" = vv_ais_disable_hrs,
+      "long_trip" = map_long_trip_n,
+      "name_changes" = vv_name_change,
+      "flag_changes" = vv_flag_change
+    ) %>%
+  #  select(c_name, iuu_logic:flag_changes)
+    select(c_name, count_high_ind, iuu_listed, unauth_rfmo_fish_events,
+           unauth_transship_events, mpa_fishing_events, mpa_fishing_hours,
+           count_med_ind, disable_events, disable_hours, long_trip, name_changes,
+           flag_changes)
+  
+  name <- paste0("rep_5_details_", deparse(substitute(supply_chain)))
+  assign(name, detail, envir = parent.frame())
+  name2 <- paste0("detail_vessels_", deparse(substitute(supply_chain)), 
+                  "_", Sys.Date(), ".csv")
+  write_csv(detail, file.path(output_dir, name2))
+  return(detail)
+}
+
 ```
+
+## List of IUU report indicators
+
+-   RFMO IUU blacklisted vessels
+-   Fishing events in RFMO without known authorization
+    -   number of vessels
+-   Potential transshipment events in RFMO without known authorization
+    -   number of vessels
+-   Potential fishing events in Marine Protected Areas
+    -   number of vessels
+    -   total fishing hours
+-   Intentional ais disabling events
+    -   total hours disabled
+    -   proportion of AIS coverage in last year
+-   Vessels with long fishing trips (\>11 mo)
+-   Number of vessel name changes in last year
+-   Number of vessel flag changes in last year
 
 ```{r vessels_with_risk}
 # identify specific vessels that were flagged with High and Medium Risk Indicators
-risky_vessels <- comp_vessels %>% 
+risky_vessels <- all_vessels %>% 
   filter(vv_iuu_listed == TRUE | vv_rfmo_unauthorized_events > 0 | vv_encounters_rfmo_unauthorized > 0 |
           vv_mpa_events > 0 | vv_ais_disabled_n > 0 | map_long_trip_n > 0 | vv_name_change > 0 | vv_flag_change > 0) %>% 
-  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, 70:length(comp_vessels))
+  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, 70:length(all_vessels))
 
 # write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
 ```
@@ -218,13 +285,17 @@ risky_vessels <- comp_vessels %>%
 
 ```{r generate_report_values}
 
-report_generally(nesi_srilanka)
+speak_generally(nesi_srilanka)
 
 check_kde_list(nesi_srilanka)
 
 assess_risk(nesi_srilanka)
 
-create_context(nesi_srilanka, itf_foc)
+give_context(nesi_srilanka, itf_foc)
+
+detail_vessels(nesi_srilanka)
+
+
 
 ```
 
@@ -260,7 +331,7 @@ bq_kde_nesi_sl <- nesi_srilanka %>%
     "transship_reported" = NA
   ) 
 
-bq_indicators_nesi_sl <-nesi_srilanka %>% 
+bq_indicators_nesi_sl <- nesi_srilanka %>% 
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
       # High Risk Indicators      
@@ -285,9 +356,8 @@ bq_indicators_nesi_sl <-nesi_srilanka %>%
             "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
   )
 
-
-
 ```
+
 
 ```{r kde_checklist_all}
 
@@ -297,7 +367,7 @@ kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_list
 ```
 
 ```{r quick_summary_jim}
-summary_jim <- comp_vessels %>% 
+summary_jim <- all_vessels %>% 
   group_by(c, c_listname) %>% 
   summarize(num_vessels = length(c_name),
             num_vessels_ais = sum(!is.na(gfw_prop_ais_coverage)),

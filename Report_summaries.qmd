@@ -209,20 +209,21 @@ detail_vessels <- function(supply_chain) {
   detail <- supply_chain %>%
     rowwise() %>% 
     mutate(
+      c_name = toupper(c_name),
       # True/False of flagged indicator
       "iuu_logic" = vv_iuu_listed > 0,
       "unauth_rfmo_fish_logic" = vv_rfmo_unauthorized_events > 0,
       "unauth_trans_logic" = vv_encounters_rfmo_unauthorized > 0,
       "mpa_events_logic" = vv_mpa_events > 0,
       "disable_events_logic" = vv_ais_disabled_n > 0,
-      "long_trip_logic" = map_long_trip_n > 0,
+      "long_trip_logic" = ifelse(map_long_trip_n > 0, TRUE, FALSE),
       "name_logic" = vv_name_change > 0,
       "flag_logic" = vv_flag_change > 0,
       # High risk
       "count_high_ind" = sum(c_across(c(iuu_logic,
                              unauth_rfmo_fish_logic,
                              unauth_trans_logic,
-                             mpa_events_logic)), na.rm = TRUE),
+                             mpa_events_logic)), na.rm = F),
       "iuu_listed" = vv_iuu_listed,
       "unauth_rfmo_fish_events" = vv_rfmo_unauthorized_events,
       "unauth_transship_events" = vv_encounters_rfmo_unauthorized,
@@ -232,18 +233,18 @@ detail_vessels <- function(supply_chain) {
       "count_med_ind" = sum(c_across(c(disable_events_logic,
                              long_trip_logic,
                              name_logic,
-                             flag_logic)), na.rm = TRUE),
+                             flag_logic)), na.rm = T),
       "disable_events" = vv_ais_disabled_n,
       "disable_hours" = vv_ais_disable_hrs,
       "long_trip" = map_long_trip_n,
       "name_changes" = vv_name_change,
-      "flag_changes" = vv_flag_change
-    ) %>%
-  #  select(c_name, iuu_logic:flag_changes)
+      "flag_changes" = vv_flag_change,
+      "ais_coverage" = vv_ais_coverage_percent) %>%
+    arrange(c_name) %>% 
     select(c_name, count_high_ind, iuu_listed, unauth_rfmo_fish_events,
            unauth_transship_events, mpa_fishing_events, mpa_fishing_hours,
            count_med_ind, disable_events, disable_hours, long_trip, name_changes,
-           flag_changes)
+           flag_changes, ais_coverage)
   
   name <- paste0("rep_5_details_", deparse(substitute(supply_chain)))
   assign(name, detail, envir = parent.frame())
@@ -295,11 +296,9 @@ give_context(nesi_srilanka, itf_foc)
 
 detail_vessels(nesi_srilanka)
 
-
-
 ```
 
-```{r report_big_query}
+```{r report_big_query, eval=FALSE}
 
 bq_kde_nesi_sl <- nesi_srilanka %>%
   summarize(
@@ -359,14 +358,14 @@ bq_indicators_nesi_sl <- nesi_srilanka %>%
 ```
 
 
-```{r kde_checklist_all}
+```{r kde_checklist_all, eval=FALSE}
 
 # create kde checklist for all supply chains
 kde_checklist <- purrr::map2_dfr(company_sup_chains$c, company_sup_chains$c_listname, check_kde_data)
 
 ```
 
-```{r quick_summary_jim}
+```{r quick_summary_jim, eval=FALSE}
 summary_jim <- all_vessels %>% 
   group_by(c, c_listname) %>% 
   summarize(num_vessels = length(c_name),
@@ -419,7 +418,7 @@ summary_jim <- all_vessels %>%
 -   Number of vessel name changes in last year
 -   Number of vessel flag changes in last year
 
-```{r iuu_vessel_list}
+```{r iuu_vessel_list, eval=FALSE}
 
 iuu_listed <- iuu_vessels %>% 
   filter(CurrentlyListed == "True") %>% 

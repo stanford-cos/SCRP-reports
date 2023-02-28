@@ -27,19 +27,18 @@ pkgs <- c(
 groundhog.library(pkgs, "2023-01-01")
 
 ## Set up directories - need to fix
-if(dir.exists(file.path("./figures"))){
-  fig_dir <- file.path("./figures")
-} else{dir.create(file.path("./figures"))
-  fig_dir <- file.path("./figures")
-}
-
 if(dir.exists(file.path("./data"))){
   data_dir <- file.path("./data")
 } else{dir.create(file.path("./data"))
   data_dir <- file.path("./data")
 }
 
-output_dir <- file.path("./output")
+if(dir.exists(file.path("./output"))){
+  output_dir <- file.path("./output")
+} else{dir.create(file.path("./output"))
+  output_dir <- file.path("./output")
+}
+
 ```
 
 ## Read in Data
@@ -51,9 +50,6 @@ all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-21
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
 
-## Set company variable (change based on which report is being generated)
-company <- "NESI"
-sup_chain <- "Sri Lanka Yellowfin"
 
 # summarize of companies and their supply chains
 ######### IDEA - How to create a dataframe that can list what variables to filter Compiled Vessels Indicators by (not set variables across supply chains) that could feed a function generating individual supply chain dataframes
@@ -61,10 +57,14 @@ company_sup_chains <- all_vessels %>%
   group_by(c, c_listname) %>% 
   summarize()
 
+## Set company variable (change based on which report is being generated)
+# company <- ""
+# sup_chain <- ""
+
 ## Filter data by company & supply chain
-vessels <- all_vessels %>% 
-  filter(c == company,
-         c_listname == sup_chain)
+# vessels <- all_vessels %>% 
+#   filter(c == company,
+#          c_listname == sup_chain)
 
 # Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
 bb_fiji <- all_vessels %>% 
@@ -153,25 +153,25 @@ assess_risk <- function(supply_chain){
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
       # High Risk Indicators      
-            "iuu_listed" = sum(as.numeric(vv_iuu_listed)),
-            "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events),
-            "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0),
-            "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized),
-            "transship_rfmo_vessels_n" = sum(vv_encounters_rfmo_unauthorized > 0),
-            "mpa_events" = sum(vv_mpa_events),
-            "mpa_vessels_n" = sum(vv_mpa_events > 0),
-            "mpa_total_hrs" = sum(vv_mpa_hrs),
+            "iuu_listed" = sum(as.numeric(vv_iuu_listed), na.rm = T),
+            "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events, na.rm = T),
+            "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0, na.rm = T),
+            "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized, na.rm = T),
+            "transship_rfmo_vessels_n" = sum(vv_encounters_rfmo_unauthorized > 0, na.rm = T),
+            "mpa_events" = sum(vv_mpa_events, na.rm = T),
+            "mpa_vessels_n" = sum(vv_mpa_events > 0, na.rm = T),
+            "mpa_total_hrs" = sum(vv_mpa_hrs, na.rm = T),
       # Medium Risk Indicators
-            "ais_disabling_events" = sum(vv_ais_disabled_n),
-            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0),
-            "ais_disabling_total_hrs" = sum(vv_ais_disable_hrs),
+            "ais_disabling_events" = sum(vv_ais_disabled_n, na.rm = T),
+            "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0, na.rm = T),
+            "ais_disabling_total_hrs" = sum(vv_ais_disable_hrs, na.rm = T),
             "ais_prop_cover_1yr_min" = min(vv_ais_coverage_percent, na.rm = T),
             "ais_prop_cover_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
             "ais_prop_cover_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
             # number of vessels with trips > 11 months
-            "vessels_long_trip_n" = sum(map_long_trip_n),
-            "vessels_name_change_n" = sum(vv_name_change),
-            "vessels_flag_change_n" = sum(vv_flag_change)
+            "vessels_long_trip_n" = sum(map_long_trip_n, na.rm = T),
+            "vessels_name_change_n" = sum(vv_name_change, na.rm = T),
+            "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
   )
   name <- paste0("rep_3_ind_vv_", deparse(substitute(supply_chain)))
   assign(name, indicators, envir = parent.frame())
@@ -256,23 +256,6 @@ detail_vessels <- function(supply_chain) {
 
 ```
 
-## List of IUU report indicators
-
--   RFMO IUU blacklisted vessels
--   Fishing events in RFMO without known authorization
-    -   number of vessels
--   Potential transshipment events in RFMO without known authorization
-    -   number of vessels
--   Potential fishing events in Marine Protected Areas
-    -   number of vessels
-    -   total fishing hours
--   Intentional ais disabling events
-    -   total hours disabled
-    -   proportion of AIS coverage in last year
--   Vessels with long fishing trips (\>11 mo)
--   Number of vessel name changes in last year
--   Number of vessel flag changes in last year
-
 ```{r vessels_with_risk}
 # identify specific vessels that were flagged with High and Medium Risk Indicators
 risky_vessels <- all_vessels %>% 
@@ -355,8 +338,20 @@ bq_indicators_nesi_sl <- nesi_srilanka %>%
             "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
   )
 
-```
+# vessels found by Big Query and not vessel viewer 
+# some error associated with how I classified findings. If AIS was "unknown" but found in VV I recorded as NA.
+# vessels with not record were also recorded as NA. 
+bq_v_id <- 
 
+bq_vessels_not_vv <- nesi_srilanka %>% 
+  filter(!is.na(gfw_mmsi) & is.na(vv_ais_coverage_percent)) %>% 
+  filter(!is.na(gfw_prop_ais_coverage)) %>% 
+  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, gfw_mmsi, 70:length(nesi_srilanka)) %>% 
+  left_join()
+
+write_csv(bq_vessels_not_vv, file.path(out_dir, paste0("COS_BQvessels_not_VV_",Sys.Date(), ".csv")))
+
+```
 
 ```{r kde_checklist_all, eval=FALSE}
 

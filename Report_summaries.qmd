@@ -45,7 +45,7 @@ if(dir.exists(file.path("./output"))){
 
 ```{r Import_Data}
 ## Compiled vessel data
-all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-21.csv"))
+all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-28.csv"))
 
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
@@ -79,6 +79,10 @@ nesi_srilanka <- all_vessels %>%
          c_listname %in% c("Sri Lanka Yellowfin"),
          c_flag %in% c("Sri Lanka"))
 
+sd_corvina <- all_vessels %>% 
+  filter(c %in% c("Sea Dealight"),
+         c_listname %in% c("Suriname Corvina"))
+
 ```
 
 ```{r scrape_open_registries}
@@ -107,7 +111,7 @@ speak_generally <- function(supply_chain){
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
             "vessels_total_n" = length(v_id),
-            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
+            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent) & vv_ais_coverage_percent != 9999),
             "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
             "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
             "prct_ais_cover_max" = max(vv_ais_coverage_percent, na.rm = T),
@@ -254,6 +258,9 @@ detail_vessels <- function(supply_chain) {
   return(detail)
 }
 
+
+# flag_risky_vessels <- function(supply_chain){
+# }
 ```
 
 ```{r vessels_with_risk}
@@ -263,21 +270,21 @@ risky_vessels <- all_vessels %>%
           vv_mpa_events > 0 | vv_ais_disabled_n > 0 | map_long_trip_n > 0 | vv_name_change > 0 | vv_flag_change > 0) %>% 
   select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, 70:length(all_vessels))
 
-# write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
+#write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
 ```
 
 
 ```{r generate_report_values}
 
-speak_generally(nesi_srilanka)
+speak_generally(sd_corvina)
 
-check_kde_list(nesi_srilanka)
+check_kde_list(sd_corvina)
 
-assess_risk(nesi_srilanka)
+assess_risk(sd_corvina)
 
-give_context(nesi_srilanka, itf_foc)
+give_context(sd_corvina, itf_foc)
 
-detail_vessels(nesi_srilanka)
+detail_vessels(sd_corvina)
 
 ```
 
@@ -341,13 +348,11 @@ bq_indicators_nesi_sl <- nesi_srilanka %>%
 # vessels found by Big Query and not vessel viewer 
 # some error associated with how I classified findings. If AIS was "unknown" but found in VV I recorded as NA.
 # vessels with not record were also recorded as NA. 
-bq_v_id <- 
 
 bq_vessels_not_vv <- nesi_srilanka %>% 
   filter(!is.na(gfw_mmsi) & is.na(vv_ais_coverage_percent)) %>% 
   filter(!is.na(gfw_prop_ais_coverage)) %>% 
-  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, gfw_mmsi, 70:length(nesi_srilanka)) %>% 
-  left_join()
+  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, gfw_mmsi, gfw_prop_ais_coverage, 70:length(nesi_srilanka)) 
 
 write_csv(bq_vessels_not_vv, file.path(out_dir, paste0("COS_BQvessels_not_VV_",Sys.Date(), ".csv")))
 

@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-## Packages, Package version control, directories
+## Packages, Version Control, Directories
 
 ```{r, setup}
 
@@ -46,6 +46,15 @@ if(dir.exists(file.path("./output"))){
 ```{r Import_Data}
 ## Compiled vessel data
 all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-28.csv"))
+# replace placeholder value "9999" with NA for analysis. 9999 in vv_ais_coverage_percent represents vessels that had vessel viewer records but had "unknown" AIS records.
+all_vessels$vv_ais_coverage_percent[which(all_vessels$vv_ais_coverage_percent == 9999)] <- NA
+
+## Dummy PVR vessel subset
+dum_vessels <- read_excel(file.path(data_dir, "pvr_vessels_subset_2022-02-18.xlsx"), sheet = 2) # replace vessel names with non-identifying values
+dum_n <- 1:nrow(dum_vessels)
+for (i in dum_n) {
+  dum_vessels$vessel_record_id[i] <- paste("vessel ", i)
+}
 
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
@@ -79,9 +88,16 @@ nesi_srilanka <- all_vessels %>%
          c_listname %in% c("Sri Lanka Yellowfin"),
          c_flag %in% c("Sri Lanka"))
 
+nesi_maldives <- all_vessels %>% 
+    filter(c %in% c("NESI"),
+         c_listname %in% c("Maldives Yellowfin"),
+         c_flag %in% c("Maldives"))
+
 sd_corvina <- all_vessels %>% 
   filter(c %in% c("Sea Dealight"),
          c_listname %in% c("Suriname Corvina"))
+
+
 
 ```
 
@@ -111,7 +127,7 @@ speak_generally <- function(supply_chain){
   summarize("company" = unique(c),
             "supply_chain" = unique(c_listname),
             "vessels_total_n" = length(v_id),
-            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent) & vv_ais_coverage_percent != 9999),
+            "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
             "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
             "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
             "prct_ais_cover_max" = max(vv_ais_coverage_percent, na.rm = T),
@@ -137,7 +153,7 @@ check_kde_list <- function(supply_chain){
             "harvest_fao" = any(!is.na(c_fao)),
             "harvest_fao_sub" = NA,
             "cert_name" = NA,
-            "fip" = any(!is.na(FIP)),
+            "fip" = any(!is.na(FIP) | !is.na(me_fip_status)),
             "vessel_name" = any(!is.na(c_name)),
             "vessel_imo" = any(!is.na(c_imo)),
             "vessel_mmsi" = any(!is.na(c_mmsi)),
@@ -188,6 +204,7 @@ give_context <- function(supply_chain, foc_list){
   summarise("company" = unique(c),
             "supply_chain" = unique(c_listname),
             "vessel_flags" = paste(unique(c_flag), sep = ";"),
+            "landing_country" = paste(unique(c_country), sep = ";"),
             "cpi" = NA,
             "psma" = paste(unique(m_c_psma), sep = ";"),
             # these need to use vessel flag not country of operation
@@ -195,6 +212,7 @@ give_context <- function(supply_chain, foc_list){
             "us_card" = paste(unique(m_c_us_flag), sep = ";"),
             "simp" = NA, # could create list of species or scrape
             "petrossian_clark" = paste(unique(m_petro_score), sep = ";"),
+            "species_harvest" = paste(unique(c_species), sep = ";"),
             "pvr" = paste(unique(me_pvr_status), sep = ";")
             )
   # True if vessel flags are on FOC list, False if not
@@ -273,18 +291,18 @@ risky_vessels <- all_vessels %>%
 #write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
 ```
 
-
 ```{r generate_report_values}
+# replace supply_chain arguement with one of interest to generate report values
 
-speak_generally(sd_corvina)
+speak_generally(nesi_maldives)
 
-check_kde_list(sd_corvina)
+check_kde_list(nesi_maldives)
 
-assess_risk(sd_corvina)
+assess_risk(nesi_maldives)
 
-give_context(sd_corvina, itf_foc)
+give_context(nesi_maldives, itf_foc)
 
-detail_vessels(sd_corvina)
+detail_vessels(nesi_maldives)
 
 ```
 
@@ -294,7 +312,7 @@ bq_kde_nesi_sl <- nesi_srilanka %>%
   summarize(
     "company" = unique(c),
     "supply_chain" = unique(c_listname),
-    "species" = any(!is.na(c_species) |!is.na(c_common_name)),
+    "species" = any(!is.na(c_species) | !is.na(c_common_name)),
     "country_harvest" = any(!is.na(c_country)),
     "ports_landing" = any(!is.na(c_port)),
     "eez_highseas" = NA,

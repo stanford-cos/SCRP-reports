@@ -60,19 +60,17 @@ all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-28
 all_vessels$vv_ais_coverage_percent[which(all_vessels$vv_ais_coverage_percent == 9999)] <- NA
 
 ## Dummy PVR vessel subset
-dum_vessels <- read_csv(file.path(data_dir, "pvr_vessels_dummy_2023-03-03.csv")) 
+dum_vessels <- read_csv(file.path(data_dir, "pvr_vessels_dummy_2023-03-03.csv")) %>% 
+  filter(!is.na(v_id))
 # replace vessel names with non-identifying values
-dum_n <- 1:nrow(dum_vessels)
-for (i in dum_n) {
-  dum_vessels$c_name[i] <- paste("vessel ", i)
-}
+dum_vessels$vv_ais_coverage_percent[which(dum_vessels$vv_ais_coverage_percent == 9999)] <- NA
 
 ## IUU Vessel List
 iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "IUUList")
 
 ```
 
-## organize data by supply chains
+## Organize Data by Supply Chains
 
 ```{r wrangle_data}
 # summarize of companies and their supply chains
@@ -114,6 +112,8 @@ sd_corvina <- all_vessels %>%
 
 ```
 
+## Get Flag of Convenience List
+
 ```{r scrape_open_registries}
 
 # scrape FOC list from ITF Seafarers (International Transport Workers Federation)
@@ -130,6 +130,8 @@ itf_foc <- read_html("https://www.itfseafarers.org/en/focs/current-registries-li
 
 ```
 
+## Pull out Vessels with Risk Indicators
+
 ```{r vessels_with_risk}
 # identify specific vessels that were flagged with High and Medium Risk Indicators
 risky_vessels <- all_vessels %>% 
@@ -139,6 +141,8 @@ risky_vessels <- all_vessels %>%
 
 #write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
 ```
+
+## Get Values for Reports
 
 ```{r generate_report_values}
 # replace supply_chain arguement with one of interest to generate report values
@@ -154,6 +158,8 @@ give_context(dum_vessels, itf_foc)
 detail_vessels(dum_vessels)
 
 ```
+
+### Report values from Big Query
 
 ```{r report_big_query, eval=FALSE}
 
@@ -225,6 +231,10 @@ write_csv(bq_vessels_not_vv, file.path(out_dir, paste0("COS_BQvessels_not_VV_",S
 
 ```
 
+### Run all supply chains (one click)
+
+This chunk could run all supply chains through report value functions at once.
+
 ```{r kde_checklist_all, eval=FALSE}
 
 # create kde checklist for all supply chains
@@ -241,6 +251,8 @@ summary_jim <- all_vessels %>%
             mean_ais_prop = mean(gfw_prop_ais_coverage, na.rm = T),
             med_ais_prop = median(gfw_prop_ais_coverage, na.rm = T))
 ```
+
+# 
 
 ## General report values
 

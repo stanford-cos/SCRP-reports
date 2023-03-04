@@ -68,7 +68,7 @@ assess_risk <- function(supply_chain){
               "ais_prop_cover_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
               "ais_prop_cover_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
               # number of vessels with trips > 11 months
-              "vessels_long_trip_n" = sum(map_long_trip_n, na.rm = T),
+              "vessels_long_trip_n" = sum(map_long_trip_n > 0, na.rm = T),
               "vessels_name_change_n" = sum(vv_name_change, na.rm = T),
               "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
     )
@@ -95,7 +95,8 @@ give_context <- function(supply_chain, foc_list){
               "pvr" = paste(unique(me_pvr_status), collapse = ";")
     )
   # True if vessel flags are on FOC list, False if not
-  foc <- any(str_detect(foc_list$c_flag, paste(context$vessel_flags, collapse = "|")))
+  foc <- any(grepl(paste(foc_list$c_flag, collapse = "|"),
+                   context$vessel_flags))
   # add foc to output
   context_2 <- context %>% 
     mutate("open_registry" = foc)

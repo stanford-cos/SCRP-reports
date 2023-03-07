@@ -27,19 +27,24 @@ check_kde_list <- function(supply_chain){
               "species" = any(!is.na(c_species) | !is.na(c_common_name)),
               "country_harvest" = any(!is.na(c_country)),
               "ports_landing" = any(!is.na(c_port)),
-              "eez_highseas" = NA,
-              "harvest_rfmo" = NA,
+              "eez_highseas" = "check",
+              "harvest_rfmo" = "check",
               "harvest_fao" = any(!is.na(c_fao)),
-              "harvest_fao_sub" = NA,
-              "cert_name" = NA,
+              "harvest_fao_sub" = "check",
+              "cert_name" = "check",
               "fip" = any(!is.na(FIP) | !is.na(me_fip_status)),
               "vessel_name" = any(!is.na(c_name)),
+              "vessel_name_n" = length(!is.na(c_name)),
               "vessel_imo" = any(!is.na(c_imo)),
+              "vessel_imo_n" = length(!is.na(c_imo)),
               "vessel_mmsi" = any(!is.na(c_mmsi)),
-              "vessel_callsign" = NA,
+              "vessel_mmsi_n" = length(!is.na(c_mmsi)),
+              "vessel_callsign" = any(!is.na(c_ircs)),
+              "vessel_callsign_n" = length(!is.na(c_ircs)),
               "vessel_flag" = any(!is.na(c_flag)),
+              "vessel_flag_n" = length(!is.na(c_flag)),
               "ais_data" = any(!is.na(vv_ais_coverage_percent)),
-              "transship_reported" = NA
+              "transship_reported" = "check"
     ) 
   name <- paste0("rep_2_kde_", deparse(substitute(supply_chain)))
   assign(name, kde, envir = parent.frame())
@@ -64,13 +69,14 @@ assess_risk <- function(supply_chain){
               "ais_disabling_events" = sum(vv_ais_disabled_n, na.rm = T),
               "ais_disabling_vessels_n" = sum(vv_ais_disabled_n > 0, na.rm = T),
               "ais_disabling_total_hrs" = sum(vv_ais_disable_hrs, na.rm = T),
-              "ais_prop_cover_1yr_min" = min(vv_ais_coverage_percent, na.rm = T),
-              "ais_prop_cover_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
-              "ais_prop_cover_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
+              "ais_cover_prct_1yr_min" = min(vv_ais_coverage_percent, na.rm = T),
+              "ais_cover_prct_1yr_max" = max(vv_ais_coverage_percent, na.rm = T),
+              "ais_cover_prct_1yr_median" = median(vv_ais_coverage_percent, na.rm = T),
+              "ais_cover_prct_1yr_mean" = mean(vv_ais_coverage_percent, na.rm = T),
               # number of vessels with trips > 11 months
-              "vessels_long_trip_n" = sum(map_long_trip_n > 0, na.rm = T),
-              "vessels_name_change_n" = sum(vv_name_change, na.rm = T),
-              "vessels_flag_change_n" = sum(vv_flag_change, na.rm = T)
+              "long_trip_vessels_n" = sum(map_long_trip_n > 0, na.rm = T),
+              "name_changes_n" = sum(vv_name_change, na.rm = T),
+              "flag_changes_n" = sum(vv_flag_change, na.rm = T)
     )
   name <- paste0("rep_3_ind_vv_", deparse(substitute(supply_chain)))
   assign(name, indicators, envir = parent.frame())
@@ -84,12 +90,12 @@ give_context <- function(supply_chain, foc_list){
               "supply_chain" = unique(c_listname),
               "vessel_flags" = paste(unique(c_flag), collapse = ";"),
               "landing_country" = paste(unique(c_country), collapse = ";"),
-              "cpi" = NA,
+              "cpi" = "check",
               "psma" = paste(unique(m_c_psma), collapse = ";"),
               # these need to use vessel flag not country of operation
               "eu_card" = paste(unique(m_c_eu_flag), collapse = ";"),
               "us_card" = paste(unique(m_c_us_flag), collapse = ";"),
-              "simp" = NA, # could create list of species or scrape
+              "simp" = "check", # could create list of species or scrape
               "petrossian_clark" = paste(unique(m_petro_score), collapse = ";"),
               "species_harvest" = paste(unique(c_species), collapse = ";"),
               "pvr" = paste(unique(me_pvr_status), collapse = ";")

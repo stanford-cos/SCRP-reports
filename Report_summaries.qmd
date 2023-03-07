@@ -95,6 +95,12 @@ bb_fiji <- all_vessels %>%
          c_flag %in% c("Fiji"),
          str_detect(gfw_eez, "FJI"))
 
+bb_malaysia <- all_vessels %>% 
+  filter(c %in% c("Bumble Bee"),
+         c_listname %in% c("Tuna"),
+         c_flag %in% c("Malaysia"),
+         str_detect(gfw_eez, "MYS"))
+
 # NESI Sri Lanka Yellowfin 
 nesi_srilanka <- all_vessels %>% 
   filter(c %in% c("NESI"),
@@ -147,15 +153,15 @@ risky_vessels <- all_vessels %>%
 ```{r generate_report_values}
 # replace supply_chain arguement with one of interest to generate report values
 
-speak_generally(dum_vessels)
+speak_generally(bb_malaysia)
 
-check_kde_list(dum_vessels)
+check_kde_list(bb_malaysia)
 
-assess_risk(dum_vessels)
+assess_risk(bb_malaysia)
 
-give_context(dum_vessels, itf_foc)
+give_context(bb_malaysia, itf_foc)
 
-detail_vessels(dum_vessels)
+detail_vessels(bb_malaysia)
 
 ```
 

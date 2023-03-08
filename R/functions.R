@@ -56,8 +56,7 @@ assess_risk <- function(supply_chain){
   indicators <- supply_chain %>% 
     summarize("company" = unique(c),
               "supply_chain" = unique(c_listname),
-              # High Risk Indicators      
-              "iuu_listed" = sum(as.numeric(vv_iuu_listed), na.rm = T),
+              "iuu_listed_vessel_n" = sum(vv_iuu_listed, na.rm = T),
               "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events, na.rm = T),
               "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0, na.rm = T),
               "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized, na.rm = T),
@@ -112,6 +111,9 @@ give_context <- function(supply_chain, foc_list){
   return(context_2)
 }
 
+### Additions - scrape PSMA webpage for values
+# https://www.fao.org/port-state-measures/background/parties-psma/en/
+
 #count_ind <- nesi_srilanka %>% 
 detail_vessels <- function(supply_chain) {
   detail <- supply_chain %>%
@@ -131,8 +133,8 @@ detail_vessels <- function(supply_chain) {
       "count_high_ind" = sum(c_across(c(iuu_logic,
                                         unauth_rfmo_fish_logic,
                                         unauth_trans_logic,
-                                        mpa_events_logic)), na.rm = F),
-      "iuu_listed" = vv_iuu_listed,
+                                        mpa_events_logic)), na.rm = T),
+      "iuu_listed" = ifelse(vv_iuu_listed == TRUE, "On IUU Lists", "Not on IUU Lists"),
       "unauth_rfmo_fish_events" = vv_rfmo_unauthorized_events,
       "unauth_transship_events" = vv_encounters_rfmo_unauthorized,
       "mpa_fishing_events" = vv_mpa_events,

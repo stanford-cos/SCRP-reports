@@ -55,7 +55,7 @@ source(file.path(scripts_dir, "functions.R"))
 
 ```{r Import_Data}
 ## Compiled vessel data
-all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-02-28.csv"))
+all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-03-07.csv"))
 # replace placeholder value "9999" with NA for analysis. 9999 in vv_ais_coverage_percent represents vessels that had vessel viewer records but had "unknown" AIS records.
 all_vessels$vv_ais_coverage_percent[which(all_vessels$vv_ais_coverage_percent == 9999)] <- NA
 
@@ -151,19 +151,34 @@ risky_vessels <- all_vessels %>%
 ## Get Values for Reports
 
 ```{r generate_report_values}
-# replace supply_chain arguement with one of interest to generate report values
+# replace supply_chain argument with one of interest to generate report values
 
-speak_generally(bb_malaysia)
+speak_generally(analysis_df)
 
-check_kde_list(bb_malaysia)
+check_kde_list(analysis_df)
 
-assess_risk(bb_malaysia)
+assess_risk(analysis_df)
 
-give_context(bb_malaysia, itf_foc)
+give_context(analysis_df, itf_foc)
 
-detail_vessels(bb_malaysia)
+detail_vessels(analysis_df)
 
 ```
+
+### Maldives Licenced Fishing Vessel List
+
+```{r maldives_vessel_list, eval = F}
+
+maldives_summary <- nesi_maldives %>% 
+  summarise(
+    "vessel_name_on_list" = sum(maldives_nat_fishing_v_name, na.rm = T),
+    "vessel_regst_outdated" = sum(maldives_nat_fishing_v_name & !maldives_nat_fishing_v_reg_num, na.rm = T),
+    "vessels_w_both" = sum(maldives_nat_fishing_v_name & maldives_nat_fishing_v_reg_num, na.rm = T),
+    "vessels_not_listed" = sum(!maldives_nat_fishing_v_name),
+    "vessel_n_supply_chain" = length(maldives_nat_fishing_v_name)
+  )
+```
+
 
 ### Report values from Big Query
 

@@ -32,17 +32,17 @@ check_kde_list <- function(supply_chain){
               "harvest_fao" = any(!is.na(c_fao)),
               "harvest_fao_sub" = "check",
               "cert_name" = "check",
-              "fip" = any(!is.na(FIP) | !is.na(me_fip_status)),
+              "fip" = any(!is.na(FIP)) | any(me_fip_status != "Not on FIP vessel lists"),
               "vessel_name" = any(!is.na(c_name)),
-              "vessel_name_n" = length(!is.na(c_name)),
+              "vessel_name_n" = sum(!is.na(c_name)),
               "vessel_imo" = any(!is.na(c_imo)),
-              "vessel_imo_n" = length(!is.na(c_imo)),
+              "vessel_imo_n" = sum(!is.na(c_imo)),
               "vessel_mmsi" = any(!is.na(c_mmsi)),
-              "vessel_mmsi_n" = length(!is.na(c_mmsi)),
+              "vessel_mmsi_n" = sum(!is.na(c_mmsi)),
               "vessel_callsign" = any(!is.na(c_ircs)),
-              "vessel_callsign_n" = length(!is.na(c_ircs)),
+              "vessel_callsign_n" = sum(!is.na(c_ircs)),
               "vessel_flag" = any(!is.na(c_flag)),
-              "vessel_flag_n" = length(!is.na(c_flag)),
+              "vessel_flag_n" = sum(!is.na(c_flag)),
               "ais_data" = any(!is.na(vv_ais_coverage_percent)),
               "transship_reported" = "check"
     ) 
@@ -56,7 +56,7 @@ assess_risk <- function(supply_chain){
   indicators <- supply_chain %>% 
     summarize("company" = unique(c),
               "supply_chain" = unique(c_listname),
-              "iuu_listed_vessel_n" = sum(vv_iuu_listed, na.rm = T),
+              "iuu_listed_vessel_n" = sum(as.logical(vv_iuu_listed), na.rm = T),
               "rfmo_no_auth_events" = sum(vv_rfmo_unauthorized_events, na.rm = T),
               "rfmo_no_auth_vessels_n" = sum(vv_rfmo_unauthorized_events > 0, na.rm = T),
               "transship_rfmo_events" = sum(vv_encounters_rfmo_unauthorized, na.rm = T),
@@ -149,7 +149,7 @@ detail_vessels <- function(supply_chain) {
       "long_trip" = map_long_trip_n,
       "name_changes" = vv_name_change,
       "flag_changes" = vv_flag_change,
-      "ais_coverage" = vv_ais_coverage_percent) %>%
+      "ais_coverage" = vv_ais_coverage_percent*100) %>%
     arrange(c_name) %>% 
     select(c_name, count_high_ind, iuu_listed, unauth_rfmo_fish_events,
            unauth_transship_events, mpa_fishing_events, mpa_fishing_hours,

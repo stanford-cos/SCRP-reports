@@ -42,7 +42,7 @@ if(dir.exists(file.path("./output"))){
 }
 
 # scripts for analysis
-scripts_dir <- file.path("./r")
+scripts_dir <- file.path("./R")
 ```
 
 ## Functions used to generate report numbers
@@ -55,7 +55,7 @@ source(file.path(scripts_dir, "functions.R"))
 
 ```{r Import_Data}
 ## Compiled vessel data
-all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-03-07.csv"))
+all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-03-20.csv"))
 # replace placeholder value "9999" with NA for analysis. 9999 in vv_ais_coverage_percent represents vessels that had vessel viewer records but had "unknown" AIS records.
 all_vessels$vv_ais_coverage_percent[which(all_vessels$vv_ais_coverage_percent == 9999)] <- NA
 
@@ -79,16 +79,12 @@ company_sup_chains <- all_vessels %>%
   group_by(c, c_listname) %>% 
   summarize()
 
-## Set company variable (change based on which report is being generated)
-# company <- ""
-# sup_chain <- ""
-
 ## Filter data by company & supply chain
 # vessels <- all_vessels %>% 
 #   filter(c == company,
 #          c_listname == sup_chain)
 
-# Specifically look at Bumble Bee Tuna supply chain of Fiji flagged vessels fishing in Fiji
+# Specific supply chains
 bb_fiji <- all_vessels %>% 
   filter(c %in% c("Bumble Bee"),
          c_listname %in% c("Tuna"),
@@ -101,7 +97,6 @@ bb_malaysia <- all_vessels %>%
          c_flag %in% c("Malaysia"),
          str_detect(gfw_eez, "MYS"))
 
-# NESI Sri Lanka Yellowfin 
 nesi_srilanka <- all_vessels %>% 
   filter(c %in% c("NESI"),
          c_listname %in% c("Sri Lanka Yellowfin"),
@@ -111,6 +106,10 @@ nesi_maldives <- all_vessels %>%
     filter(c %in% c("NESI"),
          c_listname %in% c("Maldives Yellowfin"),
          c_flag %in% c("Maldives"))
+
+nesi_norway <- all_vessels %>% 
+    filter(c %in% c("NESI"),
+         c_listname %in% c("Norway Cod Haddock"))
 
 sd_corvina <- all_vessels %>% 
   filter(c %in% c("Sea Dealight"),
@@ -153,15 +152,15 @@ risky_vessels <- all_vessels %>%
 ```{r generate_report_values}
 # replace supply_chain argument with one of interest to generate report values
 
-speak_generally(analysis_df)
+speak_generally(nesi_norway)
 
-check_kde_list(analysis_df)
+check_kde_list(nesi_norway)
 
-assess_risk(analysis_df)
+assess_risk(nesi_norway)
 
-give_context(analysis_df, itf_foc)
+give_context(nesi_norway, itf_foc)
 
-detail_vessels(analysis_df)
+detail_vessels(nesi_norway)
 
 ```
 
@@ -178,7 +177,6 @@ maldives_summary <- nesi_maldives %>%
     "vessel_n_supply_chain" = length(maldives_nat_fishing_v_name)
   )
 ```
-
 
 ### Report values from Big Query
 

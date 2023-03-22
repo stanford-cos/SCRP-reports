@@ -1,7 +1,10 @@
 ---
-title: "summary-figures"
+title: "Summary Numbers for Pilot Supply Chain Reports"
+subtitle: "Supply Chain Risk Project - Phase 2"
+author: "Althea Marks"
+affiliation: "Stanford Center for Ocean Solutions"
+date: 2023-03-22
 format: html
-editor: visual
 ---
 
 ## Packages, Version Control, Directories

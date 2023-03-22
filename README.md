@@ -1,4 +1,9 @@
 # Supply Chain Risk Project
+
+Collaborative project among the [World Economic Forum](https://www.weforum.org/), [FishWise](http://www.fishwise.org), [Global Fishing Watch](https://globalfishingwatch.org/), and the [Stanford Center for Ocean Solutions](https://oceansolutions.stanford.edu/).
+
+  
+
 ## Phase 2 Pilot Reports
 
 This repository holds script used to generate summary numbers used to populate reports for pilot supply chain analyses. 

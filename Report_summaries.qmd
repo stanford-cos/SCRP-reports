@@ -145,9 +145,9 @@ itf_foc <- read_html("https://www.itfseafarers.org/en/focs/current-registries-li
 risky_vessels <- all_vessels %>% 
   filter(vv_iuu_listed == TRUE | vv_rfmo_unauthorized_events > 0 | vv_encounters_rfmo_unauthorized > 0 |
           vv_mpa_events > 0 | vv_ais_disabled_n > 0 | map_long_trip_n > 0 | vv_name_change > 0 | vv_flag_change > 0) %>% 
-  select(c_name, c, c_listname, c_imo, c_mmsi, c_flag, 70:length(all_vessels))
+  select(c_name, c, c_listname, c_imo, c_mmsi, c_ircs, c_flag, 70:length(all_vessels))
 
-#write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
+ write_csv(risky_vessels, file.path(output_dir, paste0("COS_risky_vessels_vv_", Sys.Date(), ".csv")))
 ```
 
 ## Get Values for Reports

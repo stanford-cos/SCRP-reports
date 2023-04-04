@@ -6,6 +6,7 @@ speak_generally <- function(supply_chain){
     summarize("company" = unique(c),
               "supply_chain" = unique(c_listname),
               "vessels_total_n" = length(v_id),
+              "vv_query_date" = paste(sep = ";", unique(vv_query_date)),
               "vessels_ais_n" = sum(!is.na(vv_ais_coverage_percent)),
               "prct_vessels_ais" = vessels_ais_n / vessels_total_n,
               "prct_ais_cover_min" = min(vv_ais_coverage_percent, na.rm = T),
@@ -29,6 +30,7 @@ check_kde_list <- function(supply_chain){
               "ports_landing" = any(!is.na(c_port)),
               "eez_highseas" = "check",
               "harvest_rfmo" = "check",
+              # harvest_fao does not register/count text values - don't know why
               "harvest_fao" = any(!is.na(c_fao)),
               "harvest_fao_sub" = "check",
               "cert_name" = "check",

@@ -58,7 +58,7 @@ source(file.path(scripts_dir, "functions.R"))
 
 ```{r Import_Data}
 ## Compiled vessel data
-all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-03-20.csv"))
+all_vessels <- read_csv(file.path(data_dir,"CompiledVesselsIndicators-2023-03-29.csv"))
 # replace placeholder value "9999" with NA for analysis. 9999 in vv_ais_coverage_percent represents vessels that had vessel viewer records but had "unknown" AIS records.
 all_vessels$vv_ais_coverage_percent[which(all_vessels$vv_ais_coverage_percent == 9999)] <- NA
 
@@ -81,11 +81,6 @@ iuu_vessels <- read_excel(file.path(data_dir,"IUUList-20230127.xls"), sheet = "I
 company_sup_chains <- all_vessels %>% 
   group_by(c, c_listname) %>% 
   summarize()
-
-## Filter data by company & supply chain
-# vessels <- all_vessels %>% 
-#   filter(c == company,
-#          c_listname == sup_chain)
 
 # Specific supply chains
 bb_fiji <- all_vessels %>% 
@@ -117,6 +112,18 @@ nesi_norway <- all_vessels %>%
 sd_corvina <- all_vessels %>% 
   filter(c %in% c("Sea Dealight"),
          c_listname %in% c("Suriname Corvina"))
+
+cc_kor_bigeye <- all_vessels %>% 
+  filter(c %in% c("Culinary Collaborations"),
+         c_listname %in% c("Korean Bigeye Tuna"))
+
+cc_kor_skip <- all_vessels %>% 
+  filter(c %in% c("Culinary Collaborations"),
+         c_listname %in% c("Korean Skipjack"))
+
+cc_jpn_skip <- all_vessels %>% 
+  filter(c %in% c("Culinary Collaborations"),
+         c_listname %in% c("Japanese Skipjack"))
 
 ```
 
@@ -155,15 +162,15 @@ risky_vessels <- all_vessels %>%
 ```{r generate_report_values}
 # replace supply_chain argument with one of interest to generate report values
 
-speak_generally(nesi_norway)
+speak_generally(cc_jpn_skip)
 
-check_kde_list(nesi_norway)
+check_kde_list(cc_jpn_skip)
 
-assess_risk(nesi_norway)
+assess_risk(cc_jpn_skip)
 
-give_context(nesi_norway, itf_foc)
+give_context(cc_jpn_skip, itf_foc)
 
-detail_vessels(nesi_norway)
+detail_vessels(cc_jpn_skip)
 
 ```
 

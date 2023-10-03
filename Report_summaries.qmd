@@ -162,15 +162,15 @@ risky_vessels <- all_vessels %>%
 ```{r generate_report_values}
 # replace supply_chain argument with one of interest to generate report values
 
-speak_generally(cc_jpn_skip)
+speak_generally(cc_kor_skip)
 
-check_kde_list(cc_jpn_skip)
+check_kde_list(cc_kor_skip)
 
-assess_risk(cc_jpn_skip)
+assess_risk(cc_kor_skip)
 
-give_context(cc_jpn_skip, itf_foc)
+give_context(cc_kor_skip, itf_foc)
 
-detail_vessels(cc_jpn_skip)
+detail_vessels(cc_kor_skip)
 
 ```
 

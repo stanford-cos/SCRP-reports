@@ -16,18 +16,11 @@ knitr::opts_chunk$set(warning = F, message = F)
 ```
 
 ```{r packages_directories}
-# package and R version control for reproducibility 
-library("groundhog")
-# list additional packages in vector below
-pkgs <- c(
-  "readr",
-  "tidyverse", 
-  "magrittr",
-  "readxl",
-  "purrr",
-  "rvest") 
-# Keep this date set to load package versions corresponding with date
-groundhog.library(pkgs, "2023-01-01")
+library(readr)
+library(tidyverse)
+library(magrittr)
+library(readxl)
+library(rvest)
 
 ## Set up directories 
 # data directory - create if doesn't already exsist

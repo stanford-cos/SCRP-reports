@@ -1,0 +1,161 @@
+---
+title: "Supply Chain Risk Project Phase 3"
+subtitle: "Baseline Analysis - Metacoalition Member Companies"
+author: 
+  - name: Althea Marks
+    orcid: 0000-0002-9370-9128
+    email: email
+    affiliations:
+      - name: place
+date: "`r Sys.Date()`"
+format: 
+  html: 
+    number-sections: true
+    toc: true
+    code-tools: true
+    theme: cosmo 
+    self-contained: true
+    page-layout: full
+title-block-banner: TRUE
+execute:
+     echo: false
+     include: false
+     warning: false
+---
+
+```{r}
+#| warning: false
+#| label: setup
+#| 
+library(renv)
+library(readxl)
+library(tidyverse)
+
+## Set up directories 
+# data directory - create if doesn't already exsist
+if(dir.exists(file.path("./data"))){
+  data_dir <- file.path("./data")
+} else{dir.create(file.path("./data"))
+  data_dir <- file.path("./data")
+}
+
+# output directory - create if doesn't already exsist
+if(dir.exists(file.path("./output"))){
+  output_dir <- file.path("./output")
+} else{dir.create(file.path("./output"))
+  output_dir <- file.path("./output")
+}
+
+# scripts for analysis
+scripts_dir <- file.path("./R")
+
+# data for report
+data_comp <- file.path(data_dir, "company_survey")
+```
+
+```{r import-data}
+survey_raw <- read_excel(file.path(data_comp, "SCRP-Metacoalition-Company-Survey-Raw-2023-10-02.xlsx"),
+                         sheet = "Responses")
+```
+
+```{r clean-data}
+# extract column names
+questions_raw <- colnames(survey_raw) %>% 
+  as_tibble() 
+# dataframe with only survey questions
+survey_questions <- str_subset(questions_raw$value, "^[:digit:]") %>% 
+  as_tibble() 
+# assign survey question IDs
+survey_questions %<>% 
+  mutate(question_id = paste0("Q",seq(1:nrow(survey_questions)))) %>% 
+  rename("question" = value) %>% 
+  select(2,1)
+
+# create clean version
+survey_clean <- survey_raw %>% 
+  select(-1)
+
+# simplify column names to question IDs used in survey_questions
+colnames(survey_clean) <- gsub(" ", "_", colnames(survey_clean))
+colnames(survey_clean)[6:16] <- survey_questions$question_id
+
+# create dataframe for analysis
+survey_analysis_df <- survey_clean %>% 
+  select(!1:4)
+```
+
+```{r q1-data}
+# select only q1 data
+q1_df <- survey_analysis %>% 
+  select(1:2)
+
+# reduced question responses to yes/no
+q1_simple <- q1_df %>% 
+  mutate(Q1 = ifelse(str_detect(q1_df$Q1,"Yes"), "Yes", "No"),
+         Q1 = factor(Q1, levels = c("No" , "Yes"))) %>% 
+  count(Q1)
+
+response_n <- nrow(survey_analysis)
+```
+
+```{r q1-figure}
+library(grid)
+library(tidyverse)
+library(shadowtext)
+
+# The colors 
+#2A5D82
+
+BLUE <- "#2A5D82"
+LBLUE <- "#81AEBF"
+RED <- "#E3120B"
+BLACK <- "#202020"
+GREY <- "grey50"
+
+q1_fig <- ggplot(q1_simple) +
+  geom_col(aes(n, Q1), fill = BLUE, width = 0.6) + 
+  scale_x_continuous(
+    limits = c(0, 20.5),
+    breaks = seq(0, 20, by = 5), 
+    expand = c(0, 0), # The horizontal axis does not extend to either side
+    position = "bottom"  # Labels are located on the bottom
+  ) +
+  # The vertical axis extends upwards & down
+  scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
+  theme(
+    # Set background color to white
+    panel.background = element_rect(fill = "white"),
+    # Set the color and the width of the grid lines for the horizontal axis
+    panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
+    # Remove tick marks by setting their length to 0
+    axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Customize labels from the vertical axis
+    axis.text.y = element_text(size = 14),
+    # But customize labels for the horizontal axis
+    axis.text.x = element_text(size = 16)
+  ) +
+  geom_shadowtext(
+    data = subset(q1_simple, n < 2),
+    aes(n, y = Q1, label = n),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = BLUE,
+    bg.colour = "white",
+    bg.r = 0.2,
+    size = 7
+  ) + 
+  geom_text(
+    data = subset(q1_simple, n >= 2),
+    aes(n-1.5, y = Q1, label = n),
+    hjust = 0,
+    nudge_x = 0.3,
+    colour = "white",
+    size = 7
+  )
+q1_fig
+```
+

@@ -1,10 +1,21 @@
-# Functions for graphing
+# Functions for survey analysis
+
+## Tidying functions
+
+### remove question number prefix
+remove_q <- function(a_question_df, question_index_number){
+  x <- gsub("^[[:digit:]]\\.[[:space:]]", "", a_question_df[question_index_number,"question"])
+  return(x)
+}
+
+
+## Graphing functions
 
 library(grid)
 library(tidyverse)
 library(shadowtext)
 
-#### Yes/No question - clean data & horizontal bar chart
+### Yes/No question - clean data & horizontal bar chart
 mk_yn_fig <- function(survey_df, question_number){
   
   question_col <- paste0("Q", question_number)

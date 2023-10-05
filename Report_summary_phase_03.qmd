@@ -115,6 +115,7 @@ mk_yn_fig(survey_analysis_df, 1)
 `r remove_q(survey_questions,2)`
 
 ```{r q2-fig}
+#| include: true
 
 pattern <- "(?<=\\)),|(?<=Other \\(Please specify\\)),|(?<=Yes),|(?<=Other),|(?<=None),"
 

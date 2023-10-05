@@ -4,7 +4,11 @@ Collaborative project among the [World Economic Forum](https://www.weforum.org/)
 
 [SRC Website](https://www.weforum.org/friends-of-ocean-action/iuu-fishing-supply-chain-risk-tool-scrt)
 
+This repository contains the code used to analyze data for phases 2 and 3 of the projct
+
 ## Phase 3 Pilot Reports
+
+Purpose: generate figures and analyses for Metacoalition member company survey results
 
 `Report_summary_phase_03.qmd` is the file to run.
 - sources `R/functions-survey.R` for general and visualization functions
@@ -12,7 +16,7 @@ Collaborative project among the [World Economic Forum](https://www.weforum.org/)
 
 ## Phase 2 Pilot Reports
 
-This repository holds script used to generate summary numbers used to populate reports for pilot supply chain analyses. 
+Purpose: generate summary numbers used to populate reports for pilot supply chain analyses.
 
 `Report_summary_phase_02.qmd` is the file to run. 
 - `package_directories` chunk creates data directory to store supply chain .csv for analysis

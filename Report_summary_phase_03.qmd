@@ -1,16 +1,16 @@
 ---
-title: "Supply Chain Risk Project Phase 3"
-subtitle: "Baseline Analysis - Metacoalition Member Companies"
+title: "Metacoalition Member Company Survey - Baseline Analysis" 
+subtitle: "Supply Chain Risk Project Phase 3"
 author: 
   - name: Althea Marks
     orcid: 0000-0002-9370-9128
     email: email
     affiliations:
-      - name: place
+      - name: Stanford Center for Ocean Solutions
 date: "`r Sys.Date()`"
 format: 
   html: 
-    number-sections: true
+    number-sections: false
     toc: true
     code-tools: true
     theme: cosmo 
@@ -82,80 +82,120 @@ colnames(survey_clean)[6:16] <- survey_questions$question_id
 # create dataframe for analysis
 survey_analysis_df <- survey_clean %>% 
   select(!1:4)
+
+# function - remove question number prefix
+remove_q <- function(a_question_df, question_index_number){
+  x <- gsub("^[[:digit:]]\\.[[:space:]]", "", a_question_df[question_index_number,"question"])
+  return(x)
+}
+
+### Manual Cleaning in needed for errors in raw data
+
+# question 2, response 7: 
+# "None" is listed when other responses were selected, remove? 
+
+# question 3, response 4:
+# selected yes, but text says "No" and includes description under selection no
+# remove "No" from yes selection column? 
+
 ```
 
-```{r q1-data}
-# select only q1 data
-q1_df <- survey_analysis %>% 
-  select(1:2)
-
-# reduced question responses to yes/no
-q1_simple <- q1_df %>% 
-  mutate(Q1 = ifelse(str_detect(q1_df$Q1,"Yes"), "Yes", "No"),
-         Q1 = factor(Q1, levels = c("No" , "Yes"))) %>% 
-  count(Q1)
-
-response_n <- nrow(survey_analysis)
+```{r source-fig-script}
+source(file.path(scripts_dir, "functions-figures.R"))
 ```
 
-```{r q1-figure}
-library(grid)
-library(tidyverse)
-library(shadowtext)
+# Question 1
 
-# The colors 
-#2A5D82
+`r remove_q(survey_questions,1)`
 
-BLUE <- "#2A5D82"
-LBLUE <- "#81AEBF"
-RED <- "#E3120B"
-BLACK <- "#202020"
-GREY <- "grey50"
+```{r q1-figure-fun}
+#| include: true
+mk_yn_fig(survey_analysis_df, 1)
+```
 
-q1_fig <- ggplot(q1_simple) +
-  geom_col(aes(n, Q1), fill = BLUE, width = 0.6) + 
-  scale_x_continuous(
-    limits = c(0, 20.5),
-    breaks = seq(0, 20, by = 5), 
-    expand = c(0, 0), # The horizontal axis does not extend to either side
-    position = "bottom"  # Labels are located on the bottom
-  ) +
-  # The vertical axis extends upwards & down
-  scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
-  theme(
-    # Set background color to white
-    panel.background = element_rect(fill = "white"),
-    # Set the color and the width of the grid lines for the horizontal axis
-    panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
-    # Remove tick marks by setting their length to 0
-    axis.ticks.length = unit(0, "mm"),
-    # Remove the title for both axes
-    axis.title = element_blank(),
-    # Only left line of the vertical axis is painted in black
-    axis.line.y.left = element_line(color = "black"),
-    # Customize labels from the vertical axis
-    axis.text.y = element_text(size = 14),
-    # But customize labels for the horizontal axis
-    axis.text.x = element_text(size = 16)
-  ) +
-  geom_shadowtext(
-    data = subset(q1_simple, n < 2),
-    aes(n, y = Q1, label = n),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = BLUE,
-    bg.colour = "white",
-    bg.r = 0.2,
-    size = 7
-  ) + 
-  geom_text(
-    data = subset(q1_simple, n >= 2),
-    aes(n-1.5, y = Q1, label = n),
-    hjust = 0,
-    nudge_x = 0.3,
-    colour = "white",
-    size = 7
-  )
-q1_fig
+# Question 2
+
+`r remove_q(survey_questions,2)`
+
+```{r q2-fig}
+
+pattern <- "(?<=\\)),|(?<=Other \\(Please specify\\)),|(?<=Yes),|(?<=Other),|(?<=None),"
+
+question_df <- survey_analysis_df %>%
+  mutate(Q2 = str_split(Q2, pattern)) %>%
+  unnest_longer(Q2) %>% 
+  select(1, "Q2") %>% 
+  transmute(Collector_Name = factor(Collector_Name),
+            Q2 = Q2,
+            response = str_replace(Q2, " (?=\\().*", "")) %>% 
+  count(response)
+  
+  BLUE <- "#2A5D82"
+  LBLUE <- "#81AEBF"
+  BLACK <- "#202020"
+
+  fig <- ggplot(question_df) +
+    geom_col(aes(n, response), fill = BLUE, width = 0.6) + 
+    scale_x_continuous(
+      limits = c(0, 20.5),
+      breaks = seq(0, 20, by = 5), 
+      expand = c(0, 0), # The horizontal axis does not extend to either side
+      position = "bottom"  # Labels are located on the bottom
+    ) +
+    # The vertical axis extends upwards & down
+    scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
+    theme(
+      # Set background color to white
+      panel.background = element_rect(fill = "white"),
+      # Set the color and the width of the grid lines for the horizontal axis
+      panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
+      # Remove tick marks by setting their length to 0
+      axis.ticks.length = unit(0, "mm"),
+      # Remove the title for both axes
+      axis.title = element_blank(),
+      # Only left line of the vertical axis is painted in black
+      axis.line.y.left = element_line(color = "black"),
+      # Customize labels from the vertical axis
+      axis.text.y = element_text(size = 14),
+      # But customize labels for the horizontal axis
+      axis.text.x = element_text(size = 16)
+    ) +
+    geom_shadowtext(
+      data = subset(question_df, n < 2),
+      aes(n, y = response, label = n),
+      hjust = 0,
+      nudge_x = 0.3,
+      colour = BLUE,
+      bg.colour = "white",
+      bg.r = 0.2,
+      size = 7
+    ) + 
+    geom_text(
+      data = subset(question_df, n >= 2),
+      aes(n-1.5, y = response, label = n),
+      hjust = 0,
+      nudge_x = 0.3,
+      colour = "white",
+      size = 7
+    )
+fig
+```
+
+
+# Question 3
+
+`r remove_q(survey_questions,3)`
+
+# Question 4
+
+`r remove_q(survey_questions,6)`
+
+# Question 5
+
+`r remove_q(survey_questions,8)`
+
+```{r q8-figure-fun}
+#| include: true
+mk_yn_fig(survey_analysis_df, 8)
 ```
 

@@ -44,7 +44,7 @@ scripts_dir <- file.path("./R")
 ## Functions used to generate report numbers
 
 ```{r functions}
-source(file.path(scripts_dir, "functions.R"))
+source(file.path(scripts_dir, "functions-supply-chains.R"))
 ```
 
 ## Read in Data

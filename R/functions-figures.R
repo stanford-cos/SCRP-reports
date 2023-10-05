@@ -4,6 +4,7 @@ library(grid)
 library(tidyverse)
 library(shadowtext)
 
+#### Yes/No question - clean data & horizontal bar chart
 mk_yn_fig <- function(survey_df, question_number){
   
   question_col <- paste0("Q", question_number)
@@ -12,12 +13,8 @@ mk_yn_fig <- function(survey_df, question_number){
   question_df <- survey_df %>% 
     select(1, question_col) %>% 
     mutate(response = ifelse(str_detect(survey_df[[question_col]],"Yes"), "Yes", "No"),
-           response = factor(response, levels = c("No" , "Yes"))) %>% 
+           response = factor(response, levels = c("No", "Yes", NA))) %>% 
     count(response)
-  
-  #return(question_df)
-  
-  response_n <- nrow(survey_df)
   
   # set colors
   BLUE <- "#2A5D82"

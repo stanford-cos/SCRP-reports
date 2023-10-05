@@ -13,6 +13,7 @@ Purpose: generate figures and analyses for Metacoalition member company survey r
 `Report_summary_phase_03.qmd` is the file to run.
 - sources `R/functions-survey.R` for general and visualization functions
 - `Data/` not publically available yet
+- Render this doc in Rstudio to produce self-contained `Report_summary_phase_03.html` viewable in any internet browser
 
 ## Phase 2 - Supply Chain IUU Risk Assesment Pilot
 

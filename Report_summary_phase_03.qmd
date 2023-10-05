@@ -58,6 +58,10 @@ survey_raw <- read_excel(file.path(data_comp, "SCRP-Metacoalition-Company-Survey
                          sheet = "Responses")
 ```
 
+```{r source-functions}
+source(file.path(scripts_dir, "functions-survey.R"))
+```
+
 ```{r clean-data}
 # extract column names
 questions_raw <- colnames(survey_raw) %>% 
@@ -83,25 +87,18 @@ colnames(survey_clean)[6:16] <- survey_questions$question_id
 survey_analysis_df <- survey_clean %>% 
   select(!1:4)
 
-# function - remove question number prefix
-remove_q <- function(a_question_df, question_index_number){
-  x <- gsub("^[[:digit:]]\\.[[:space:]]", "", a_question_df[question_index_number,"question"])
-  return(x)
-}
-
 ### Manual Cleaning in needed for errors in raw data
 
-# question 2, response 7: 
-# "None" is listed when other responses were selected, remove? 
+# question 2., response 7 (Response ID eJzAf5Xu): 
+# "None" is listed when other responses were selected, remove? - KT & AM agree yes 2023-10-04
+survey_analysis_df[7,"Q2"] <- str_replace(survey_analysis_df[[7,"Q2"]], ",None$", "")
 
-# question 3, response 4:
+# question 3., response 4:
 # selected yes, but text says "No" and includes description under selection no
 # remove "No" from yes selection column? 
 
-```
 
-```{r source-fig-script}
-source(file.path(scripts_dir, "functions-figures.R"))
+
 ```
 
 # Question 1

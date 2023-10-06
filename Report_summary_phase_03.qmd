@@ -75,7 +75,6 @@ source(file.path(scripts_dir, "functions-survey.R"))
   BLACK <- "#202020"
 ```
 
-
 ```{r clean-data}
 # extract column names
 questions_raw <- colnames(survey_raw) %>% 
@@ -152,8 +151,6 @@ specified_text_vector <- survey_analysis_df %>%
   str_replace("Other \\(Please specify\\):?", "") %>%
   na.omit() %>%
   unique()
-
-specified_text_vector
 
 question_df <- survey_analysis_df %>%
   mutate(Q2 = str_split(Q2, pattern)) %>%
@@ -232,6 +229,15 @@ ggsave(file.path(fig_dir, "Figure_Q2.png"),
        )
 ```
 
+text responses for `Other` selections:
+
+
+```{r echo=FALSE, include= T, results="asis"}
+# display text open text responses
+for (x in seq_along(specified_text_vector)) {
+    cat(specified_text_vector[x], "\n")
+}
+```
 
 # Question 3
 
@@ -308,7 +314,6 @@ ggsave(file.path(fig_dir, "Figure_Q2.png"),
 
 ```
 
-
 # Question 4
 
 `r remove_q(survey_questions,6)`
@@ -330,4 +335,3 @@ ggsave(file.path(fig_dir, "Figure_Q8.png"),
        dpi = 600,
        )
 ```
-

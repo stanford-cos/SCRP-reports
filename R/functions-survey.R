@@ -15,24 +15,30 @@ library(grid)
 library(tidyverse)
 library(shadowtext)
 
-### Yes/No question - clean data & horizontal bar chart
-mk_yn_fig <- function(survey_df, question_number){
-  
+### Yes/NO question - prep data for graphing
+
+prep_yn_df <- function(survey_df, question_number){
   question_col <- paste0("Q", question_number)
   
   # select only q1 data
   question_df <- survey_df %>% 
-    select(1, question_col) %>% 
-    mutate(response = ifelse(str_detect(survey_df[[question_col]],"Yes"), "Yes", "No"),
-           response = factor(response, levels = c("No", "Yes", NA))) %>% 
+    mutate(
+      response = ifelse(str_detect(survey_df[[question_col]], "Yes"), "Yes",
+                        ifelse(is.na(survey_df[[question_col]]), "NA", "No")),
+      response = factor(response, levels = c("Yes", "No", "NA"))) %>%
+    arrange(desc(survey_df$n)) %>% 
     count(response)
+}
+
+### Yes/No question - clean data & horizontal bar chart
+mk_yn_fig <- function(preped_df){
   
   # set colors
   BLUE <- "#2A5D82"
   LBLUE <- "#81AEBF"
   BLACK <- "#202020"
   
-  fig <- ggplot(question_df) +
+  fig <- ggplot(preped_df) +
     geom_col(aes(n, response), fill = BLUE, width = 0.6) + 
     scale_x_continuous(
       limits = c(0, 20.5),
@@ -54,27 +60,27 @@ mk_yn_fig <- function(survey_df, question_number){
       # Only left line of the vertical axis is painted in black
       axis.line.y.left = element_line(color = "black"),
       # Customize labels from the vertical axis
-      axis.text.y = element_text(size = 14),
+      axis.text.y = element_text(size = 12),
       # But customize labels for the horizontal axis
-      axis.text.x = element_text(size = 16)
+      axis.text.x = element_text(size = 12)
     ) +
     geom_shadowtext(
-      data = subset(question_df, n < 2),
+      data = subset(preped_df, n < 2),
       aes(n, y = response, label = n),
       hjust = 0,
       nudge_x = 0.3,
       colour = BLUE,
       bg.colour = "white",
       bg.r = 0.2,
-      size = 7
+      size = 4
     ) + 
     geom_text(
-      data = subset(question_df, n >= 2),
+      data = subset(preped_df, n >= 2),
       aes(n-1.5, y = response, label = n),
       hjust = 0,
       nudge_x = 0.3,
       colour = "white",
-      size = 7
+      size = 4
     )
   return(fig)
 }

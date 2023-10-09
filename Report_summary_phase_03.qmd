@@ -70,9 +70,9 @@ source(file.path(scripts_dir, "functions-survey.R"))
 ```
 
 ```{r figure-colors}
-  BLUE <- "#2A5D82"
-  LBLUE <- "#81AEBF"
-  BLACK <- "#202020"
+  # BLUE <- "#2A5D82"
+  # LBLUE <- "#81AEBF"
+  # BLACK <- "#202020"
 ```
 
 ```{r clean-data}
@@ -122,7 +122,7 @@ survey_analysis_df <- survey_analysis_df %>%
 ```{r q1-figure-fun}
 #| include: true
 q1_df <- prep_yn_df(survey_analysis_df, 1)
-fig_1 <- mk_yn_fig(q1_df)
+fig_1 <- mk_hz_bar_fig(q1_df)
 fig_1
 ggsave(file.path(fig_dir, "Figure_Q1.png"),
        fig_1, 
@@ -140,7 +140,7 @@ ggsave(file.path(fig_dir, "Figure_Q1.png"),
 ```{r q2-fig}
 #| include: true
 
-# grex patterns for separating multiple choice selections listed in a single cell
+# regex patterns for separating multiple choice selections listed in a single cell
 pattern <- "(?<=\\)),|(?<=Other \\(Please specify\\)),|(?<=Other),|(?<=None),"
 # pattern for extracting text entered when selected other
 specify_pattern <- "Other \\(Please specify\\):?(.*)$"
@@ -153,7 +153,7 @@ specified_text_vector <- survey_analysis_df %>%
   na.omit() %>%
   unique()
 
-question_df <- survey_analysis_df %>%
+q2_df <- survey_analysis_df %>%
   mutate(Q2 = str_split(Q2, pattern)) %>%
   unnest_longer(Q2) %>%
   select(1, "Q2") %>%
@@ -163,55 +163,56 @@ question_df <- survey_analysis_df %>%
   count(response) %>% 
   arrange(-n) # sort largest to smallest
 
-  fig <- ggplot(question_df) +
-    geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
-    scale_x_continuous(
-      limits = c(0, 20.5),
-      breaks = seq(0, 20, by = 5), 
-      expand = c(0, 0), # The horizontal axis does not extend to either side
-      position = "bottom"  # Labels are located on the bottom
-    ) +
-    # The vertical axis extends upwards & down
-    scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
-    theme(
-      # Set background color to white
-      panel.background = element_rect(fill = "white"),
-      # Set the color and the width of the grid lines for the horizontal axis
-      panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
-      # Remove tick marks by setting their length to 0
-      axis.ticks.length = unit(0, "mm"),
-      # Remove the title for both axes
-      axis.title = element_blank(),
-      # Only left line of the vertical axis is painted in black
-      axis.line.y.left = element_line(color = "black"),
-      # Customize labels from the vertical axis
-      axis.text.y = element_text(size = 12),
-      # But customize labels for the horizontal axis
-      axis.text.x = element_text(size = 12)
-    ) +
-    geom_shadowtext(
-      data = subset(question_df, n < 2),
-      aes(n, y = response, label = n),
-      hjust = 0,
-      nudge_x = 0.3,
-      colour = BLUE,
-      bg.colour = "white",
-      bg.r = 0.2,
-      size = 4
-    ) + 
-    geom_text(
-      data = subset(question_df, n >= 2),
-      aes(n-1.5, y = response, label = n),
-      hjust = 0,
-      nudge_x = 0.3,
-      colour = "white",
-      size = 4
-    )
+#   fig <- ggplot(question_df) +
+#     geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
+#     scale_x_continuous(
+#       limits = c(0, 20.5),
+#       breaks = seq(0, 20, by = 5), 
+#       expand = c(0, 0), # The horizontal axis does not extend to either side
+#       position = "bottom"  # Labels are located on the bottom
+#     ) +
+#     # The vertical axis extends upwards & down
+#     scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
+#     theme(
+#       # Set background color to white
+#       panel.background = element_rect(fill = "white"),
+#       # Set the color and the width of the grid lines for the horizontal axis
+#       panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
+#       # Remove tick marks by setting their length to 0
+#       axis.ticks.length = unit(0, "mm"),
+#       # Remove the title for both axes
+#       axis.title = element_blank(),
+#       # Only left line of the vertical axis is painted in black
+#       axis.line.y.left = element_line(color = "black"),
+#       # Customize labels from the vertical axis
+#       axis.text.y = element_text(size = 12),
+#       # But customize labels for the horizontal axis
+#       axis.text.x = element_text(size = 12)
+#     ) +
+#     geom_shadowtext(
+#       data = subset(question_df, n < 2),
+#       aes(n, y = response, label = n),
+#       hjust = 0,
+#       nudge_x = 0.3,
+#       colour = BLUE,
+#       bg.colour = "white",
+#       bg.r = 0.2,
+#       size = 4
+#     ) + 
+#     geom_text(
+#       data = subset(question_df, n >= 2),
+#       aes(n-1.5, y = response, label = n),
+#       hjust = 0,
+#       nudge_x = 0.3,
+#       colour = "white",
+#       size = 4
+#     )
+# 
+# fig
+fig_2 <- mk_hz_bar_fig(q2_df)
 
-fig
-  
 ggsave(file.path(fig_dir, "Figure_Q2.png"),
-       fig, 
+       fig_2, 
        device = "png",
        width = 6,
        scale = 1.618,
@@ -236,7 +237,7 @@ for (x in seq_along(specified_text_vector)) {
 ```{r q3-figure}
 #| include: true
 
-question_3_df <- survey_analysis_df %>%
+q3_df <- survey_analysis_df %>%
   select(Q3:Q5) %>% 
   pivot_longer(cols = Q3:Q5, names_to = "response") %>% 
   na.omit() %>% 
@@ -244,12 +245,12 @@ question_3_df <- survey_analysis_df %>%
                            ifelse(response == "Q4", "Sometimes", "No")),
          response = factor(response)) 
 
-question_3_fig_df <- question_3_df %>% 
+q_3_fig_df <- q3_df %>% 
   count(response) %>% 
   arrange(desc(n))
 
 
-fig_3 <- mk_yn_fig(question_3_fig_df)
+fig_3 <- mk_hz_bar_fig(q_3_fig_df)
 fig_3
 
 ```
@@ -258,9 +259,9 @@ Text responses for `Yes` selections:
 
 ```{r echo=FALSE, include= T, results="asis"}
 # display text open text responses
-for (x in seq_along(question_3_df$response)) {
-  if(question_3_df$response[x] == "Yes"){
-    formatted_string <- paste("- ", question_3_df$value[x])
+for (x in seq_along(q3_df$response)) {
+  if(q3_df$response[x] == "Yes"){
+    formatted_string <- paste("- ", q3_df$value[x])
     cat(formatted_string, "\n")
   }
 }
@@ -297,6 +298,96 @@ for (x in seq_along(question_3_df$response)) {
 
 `r remove_q(survey_questions,6)`
 
+```{r q6_fig}
+#| include: TRUE
+q6_df <- survey_analysis_df %>% 
+  select(Q6:Q7)
+
+# regex patterns for separating multiple choice selections listed in a single cell
+pattern_sep_mc <- "(?<=FAO Global Record),|(?<=National vessel lists),|(?<=RFMO vessel authorization lists),|(?<=Global Fishing Watch),|(?<=I don't use any platforms),|(?<=FAO Designated Ports App),|(?<=FAO PSMA Global Information Exchange System),|(?<=Others not listed \\(Please specify\\)),"
+
+# pattern for extracting text entered when selected other
+pattern_other_extract <- "Others not listed \\(Please specify\\) - (.*)$"
+pattern_other_replace <- "Others not listed \\(Please specify\\) - "
+
+# record other text in a separate vector for reporting
+specified_text_vector_q6 <- q6_df %>%
+  mutate(specified_text = str_extract(Q6, pattern_other_extract)) %>%
+  pull(specified_text) %>%
+  str_replace(pattern_other_replace, "") %>%
+  na.omit() %>%
+  unique()
+
+q6_df <- survey_analysis_df %>%
+  mutate(Q6 = str_split(Q6, pattern_sep_mc)) %>%
+  unnest_longer(Q6) %>%
+  select(1, "Q6") %>%
+  transmute(Collector_Name = factor(Collector_Name),
+            Q6 = Q6,
+            response = str_replace(Q6, " (?=\\().*", "")) %>%
+  count(response) %>% 
+  arrange(-n) # sort largest to smallest
+
+fig_4 <- mk_hz_bar_fig(q6_df)
+
+# fig <- ggplot(question_df) +
+#   geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
+#   scale_x_continuous(
+#     limits = c(0, 20.5),
+#     breaks = seq(0, 20, by = 5), 
+#     expand = c(0, 0), # The horizontal axis does not extend to either side
+#     position = "bottom"  # Labels are located on the bottom
+#   ) +
+#   # The vertical axis extends upwards & down
+#   scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
+#   theme(
+#     # Set background color to white
+#     panel.background = element_rect(fill = "white"),
+#     # Set the color and the width of the grid lines for the horizontal axis
+#     panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
+#     # Remove tick marks by setting their length to 0
+#     axis.ticks.length = unit(0, "mm"),
+#     # Remove the title for both axes
+#     axis.title = element_blank(),
+#     # Only left line of the vertical axis is painted in black
+#     axis.line.y.left = element_line(color = "black"),
+#     # Customize labels from the vertical axis
+#     axis.text.y = element_text(size = 12),
+#     # But customize labels for the horizontal axis
+#     axis.text.x = element_text(size = 12)
+#   ) +
+#   geom_shadowtext(
+#     data = subset(question_df, n < 2),
+#     aes(n, y = response, label = n),
+#     hjust = 0,
+#     nudge_x = 0.3,
+#     colour = BLUE,
+#     bg.colour = "white",
+#     bg.r = 0.2,
+#     size = 4
+#   ) + 
+#   geom_text(
+#     data = subset(question_df, n >= 2),
+#     aes(n-1.5, y = response, label = n),
+#     hjust = 0,
+#     nudge_x = 0.3,
+#     colour = "white",
+#     size = 4
+#   )
+# 
+# fig
+```
+
+Text responses for `Others not listed` selections:
+
+```{r include= T, results="asis"}
+# display text open text responses
+for (x in seq_along(specified_text_vector_q6)) {
+  formatted_string <- paste("- ", specified_text_vector_q6[x])
+    cat(formatted_string, "\n")
+}
+```
+
 # Question 5
 
 `r remove_q(survey_questions,8)`
@@ -304,7 +395,7 @@ for (x in seq_along(question_3_df$response)) {
 ```{r q8-figure}
 #| include: true
 q8_df <- prep_yn_df(survey_analysis_df, 8)
-fig_8 <- mk_yn_fig(q8_df)
+fig_8 <- mk_hz_bar_fig(q8_df)
 fig_8
 ggsave(file.path(fig_dir, "Figure_Q8.png"),
        fig_8, 

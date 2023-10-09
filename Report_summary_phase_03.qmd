@@ -163,17 +163,6 @@ question_df <- survey_analysis_df %>%
   count(response) %>% 
   arrange(-n) # sort largest to smallest
 
-#pattern <- "(?<=\\)),|(?<=Other \\(Please specify\\)),|(?<=Other),|(?<=None),"
-# 
-# question_df <- survey_analysis_df %>%
-#   mutate(Q2 = str_split(Q2, pattern)) %>%
-#   unnest_longer(Q2) %>%
-#   select(1, "Q2") %>%
-#   transmute(Collector_Name = factor(Collector_Name),
-#             Q2 = Q2,
-#             response = str_replace(Q2, " (?=\\().*", "")) %>%
-#   count(response)
-
   fig <- ggplot(question_df) +
     geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
     scale_x_continuous(
@@ -244,7 +233,7 @@ for (x in seq_along(specified_text_vector)) {
 
 `r remove_q(survey_questions,3)`
 
-```{r q3-figure, eval=FALSE}
+```{r q3-figure}
 #| include: true
 
 question_3_df <- survey_analysis_df %>%
@@ -252,10 +241,16 @@ question_3_df <- survey_analysis_df %>%
   pivot_longer(cols = Q3:Q5, names_to = "response") %>% 
   na.omit() %>% 
   mutate(response = ifelse(response == "Q3", "Yes", 
-                           ifelse(response == "Q4", "Sometimes", "No")))
+                           ifelse(response == "Q4", "Sometimes", "No")),
+         response = factor(response)) 
+
+question_3_fig_df <- question_3_df %>% 
+  count(response) %>% 
+  arrange(desc(n))
 
 
-
+fig_3 <- mk_yn_fig(question_3_fig_df)
+fig_3
 
 ```
 

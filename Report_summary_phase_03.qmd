@@ -219,7 +219,7 @@ ggsave(file.path(fig_dir, "Figure_Q2.png"),
        )
 ```
 
-text responses for `Other` selections:
+Text responses for `Other` selections:
 
 
 ```{r echo=FALSE, include= T, results="asis"}
@@ -251,6 +251,45 @@ question_3_fig_df <- question_3_df %>%
 
 fig_3 <- mk_yn_fig(question_3_fig_df)
 fig_3
+
+```
+
+Text responses for `Yes` selections:
+
+```{r echo=FALSE, include= T, results="asis"}
+# display text open text responses
+for (x in seq_along(question_3_df$response)) {
+  if(question_3_df$response[x] == "Yes"){
+    formatted_string <- paste("- ", question_3_df$value[x])
+    cat(formatted_string, "\n")
+  }
+}
+
+```
+
+Text responses for `Sometimes` selections:
+
+```{r echo=FALSE, include= T, results="asis"}
+# display text open text responses
+for (x in seq_along(question_3_df$response)) {
+  if(question_3_df$response[x] == "Sometimes"){
+    formatted_string <- paste("- ", question_3_df$value[x])
+    cat(formatted_string, "\n")
+  }
+}
+
+```
+
+Text responses for `No` selections:
+
+```{r echo=FALSE, include= T, results="asis"}
+# display text open text responses
+for (x in seq_along(question_3_df$response)) {
+  if(question_3_df$response[x] == "No"){
+    formatted_string <- paste("- ", question_3_df$value[x])
+    cat(formatted_string, "\n")
+  }
+}
 
 ```
 

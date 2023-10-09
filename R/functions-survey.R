@@ -20,18 +20,19 @@ library(shadowtext)
 prep_yn_df <- function(survey_df, question_number){
   question_col <- paste0("Q", question_number)
   
-  # select only q1 data
+  # select only question of interest data
   question_df <- survey_df %>% 
     mutate(
       response = ifelse(str_detect(survey_df[[question_col]], "Yes"), "Yes",
                         ifelse(is.na(survey_df[[question_col]]), "NA", "No")),
       response = factor(response)) %>%
     arrange(desc(survey_df$n)) %>% 
-    count(response)
+    count(response) %>% 
+    na.omit() 
 }
 
-### Yes/No question - clean data & horizontal bar chart
-mk_yn_fig <- function(preped_df){
+### Build horizontal bar chart
+mk_hz_bar_fig <- function(preped_df){
   
   # set colors
   BLUE <- "#2A5D82"
@@ -84,3 +85,37 @@ mk_yn_fig <- function(preped_df){
     )
   return(fig)
 }
+
+### Multiple selection Q 
+
+# work on creating function
+# # regex patterns for separating multiple choice selections listed in a single cell
+# pattern_sep_mc <- "(?<=FAO Global Record),|(?<=National vessel lists),|(?<=RFMO vessel authorization lists),|(?<=Global Fishing Watch),|(?<=I don't use any platforms),|(?<=FAO Designated Ports App),|(?<=FAO PSMA Global Information Exchange System),|(?<=Others not listed \\(Please specify\\)),"
+# 
+# # pattern for extracting text entered when selected other
+# pattern_other_extract <- "Others not listed \\(Please specify\\) - (.*)$"
+# pattern_other_replace <- "Others not listed \\(Please specify\\) - "
+# 
+# pull_other_text <- function(survey_df, a_q_col, a_pattern_sep, a_pattern_ext, a_pattern_rep){
+#   
+#   # record other text in a separate vector for reporting
+#   specified_text_vector <- survey_df %>%
+#     mutate(specified_text = str_extract(a_q_col, pattern_other_extract)) %>%
+#     pull(specified_text) %>%
+#     str_replace(pattern_other_replace, '') %>%
+#     na.omit() %>%
+#     unique()
+#   
+#   return(specified_text_vector)
+# }
+# 
+# 
+# question_df <- survey_analysis_df %>%
+#   mutate(Q6 = str_split(Q6, pattern_sep_mc)) %>%
+#   unnest_longer(Q6) %>%
+#   select(1, "Q6") %>%
+#   transmute(Collector_Name = factor(Collector_Name),
+#             Q6 = Q6,
+#             response = str_replace(Q6, " (?=\\().*", "")) %>%
+#   count(response) %>% 
+#   arrange(-n) # sort largest to smallest

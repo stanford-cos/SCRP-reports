@@ -25,7 +25,7 @@ prep_yn_df <- function(survey_df, question_number){
     mutate(
       response = ifelse(str_detect(survey_df[[question_col]], "Yes"), "Yes",
                         ifelse(is.na(survey_df[[question_col]]), "NA", "No")),
-      response = factor(response, levels = c("Yes", "No", "NA"))) %>%
+      response = factor(response)) %>%
     arrange(desc(survey_df$n)) %>% 
     count(response)
 }

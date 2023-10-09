@@ -244,13 +244,18 @@ for (x in seq_along(specified_text_vector)) {
 
 `r remove_q(survey_questions,3)`
 
-```{r q3-figure}
+```{r q3-figure, eval=FALSE}
 #| include: true
 
-question_df <- survey_analysis_df %>%
-  mutate(Q3_agg = ) %>%
-  select(Q3) %>% 
-  count(response)
+question_3_df <- survey_analysis_df %>%
+  select(Q3:Q5) %>% 
+  pivot_longer(cols = Q3:Q5, names_to = "response") %>% 
+  na.omit() %>% 
+  mutate(response = ifelse(response == "Q3", "Yes", 
+                           ifelse(response == "Q4", "Sometimes", "No")))
+
+
+
 
 ```
 

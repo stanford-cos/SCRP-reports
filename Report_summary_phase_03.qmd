@@ -1,5 +1,5 @@
 ---
-title: "Metacoalition Member Company Survey - Baseline Analysis" 
+title: "Metacoalition Member Company Survey - Transparencey Review" 
 subtitle: "Supply Chain Risk Project Phase 3"
 author: 
   - name: Althea Marks
@@ -144,15 +144,18 @@ ggsave(file.path(fig_dir, "Figure_Q1.png"),
 # regex patterns for separating multiple choice selections listed in a single cell
 pattern <- "(?<=\\)),|(?<=Other \\(Please specify\\)),|(?<=Other),|(?<=None),"
 # pattern for extracting text entered when selected other
-specify_pattern <- "Other \\(Please specify\\):?(.*)$"
+specify_pattern <- "Other \\(Please specify\\) - (.*)$"
 
-# record other text in a separate vector for reporting
+# Record other text in a separate vector for reporting
 specified_text_vector <- survey_analysis_df %>%
+  # create new col with string if matches, NA if not
   mutate(specified_text = str_extract(Q2, specify_pattern)) %>%
+  # only want to work with new column
   pull(specified_text) %>%
-  str_replace("Other \\(Please specify\\):?", "") %>%
-  na.omit() %>%
-  unique()
+  # replace strings with matching pattern with space
+  str_replace("Other \\(Please specify\\) - ", "") %>%
+   na.omit() %>%
+   unique()
 
 q2_df <- survey_analysis_df %>%
   mutate(Q2 = str_split(Q2, pattern)) %>%
@@ -180,7 +183,8 @@ Text responses for `Other` selections:
 ```{r echo=FALSE, include= T, results="asis"}
 # display text open text responses
 for (x in seq_along(specified_text_vector)) {
-    cat(specified_text_vector[x], "\n")
+  vec <- paste0("- \"",specified_text_vector[x],"\"")
+    cat(vec, "\n")
 }
 ```
 
@@ -223,7 +227,7 @@ Text responses for `Yes` selections:
 # display text open text responses
 for (x in seq_along(q3_df$response)) {
   if(q3_df$response[x] == "Yes"){
-    formatted_string <- paste("- ", q3_df$value[x])
+    formatted_string <- paste("- \"", q3_df$value[x],"\"")
     cat(formatted_string, "\n")
   }
 }
@@ -236,7 +240,7 @@ Text responses for `Sometimes` selections:
 # display text open text responses
 for (x in seq_along(q3_df$response)) {
   if(q3_df$response[x] == "Sometimes"){
-    formatted_string <- paste("- ", q3_df$value[x])
+    formatted_string <- paste("- \"", q3_df$value[x],"\"")
     cat(formatted_string, "\n")
   }
 }
@@ -249,7 +253,7 @@ Text responses for `No` selections:
 # display text open text responses
 for (x in seq_along(q3_df$response)) {
   if(q3_df$response[x] == "No"){
-    formatted_string <- paste("- ", q3_df$value[x])
+    formatted_string <- paste("- \"", q3_df$value[x],"\"")
     cat(formatted_string, "\n")
   }
 }
@@ -327,6 +331,20 @@ ggsave(file.path(fig_dir, "Figure_Q5.png"),
        height = 2,
        dpi = 600,
        )
+```
+
+Text explinations:
+
+```{r include= T, results="asis"}
+# display text open text responses
+q9_df <- survey_analysis_df %>% 
+  select(Q9) %>% 
+  na.omit()
+
+for (x in seq_along(q9_df$Q9)) {
+  formatted_string <- paste("- \"", q9_df$Q9[x],"\"")
+    cat(formatted_string, "\n")
+}
 ```
 
 # Question 6

@@ -63,16 +63,17 @@ data_comp <- file.path(data_dir, "company_survey")
 ```{r import-data}
 survey_raw <- read_excel(file.path(data_comp, "SCRP-Metacoalition-Company-Survey-Raw-2023-10-02.xlsx"),
                          sheet = "Responses")
+
+# Nina processed open text responses for questions 6 and 7- read in results
+q10_df <- read_excel(file.path(data_comp, "SCRP-Metacoalition-Company-Survey_Question-6-7.xlsx"),
+                     sheet = "Question 6", range = "A31:B40")
+
+q11_df <- read_excel(file.path(data_comp, "SCRP-Metacoalition-Company-Survey_Question-6-7.xlsx"),
+                     sheet = "Question 7", range = "B29:C37")
 ```
 
 ```{r source-functions}
 source(file.path(scripts_dir, "functions-survey.R"))
-```
-
-```{r figure-colors}
-  # BLUE <- "#2A5D82"
-  # LBLUE <- "#81AEBF"
-  # BLACK <- "#202020"
 ```
 
 ```{r clean-data}
@@ -127,8 +128,8 @@ fig_1
 ggsave(file.path(fig_dir, "Figure_Q1.png"),
        fig_1, 
        device = "png",
-       width = 6,
-       scale = 1.618,
+       width = 4,
+       height = 2,
        dpi = 600,
        )
 ```
@@ -157,65 +158,18 @@ q2_df <- survey_analysis_df %>%
   mutate(Q2 = str_split(Q2, pattern)) %>%
   unnest_longer(Q2) %>%
   select(1, "Q2") %>%
-  transmute(Collector_Name = factor(Collector_Name),
-            Q2 = Q2,
+  transmute(Q2 = Q2,
             response = str_replace(Q2, " (?=\\().*", "")) %>%
   count(response) %>% 
   arrange(-n) # sort largest to smallest
 
-#   fig <- ggplot(question_df) +
-#     geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
-#     scale_x_continuous(
-#       limits = c(0, 20.5),
-#       breaks = seq(0, 20, by = 5), 
-#       expand = c(0, 0), # The horizontal axis does not extend to either side
-#       position = "bottom"  # Labels are located on the bottom
-#     ) +
-#     # The vertical axis extends upwards & down
-#     scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
-#     theme(
-#       # Set background color to white
-#       panel.background = element_rect(fill = "white"),
-#       # Set the color and the width of the grid lines for the horizontal axis
-#       panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
-#       # Remove tick marks by setting their length to 0
-#       axis.ticks.length = unit(0, "mm"),
-#       # Remove the title for both axes
-#       axis.title = element_blank(),
-#       # Only left line of the vertical axis is painted in black
-#       axis.line.y.left = element_line(color = "black"),
-#       # Customize labels from the vertical axis
-#       axis.text.y = element_text(size = 12),
-#       # But customize labels for the horizontal axis
-#       axis.text.x = element_text(size = 12)
-#     ) +
-#     geom_shadowtext(
-#       data = subset(question_df, n < 2),
-#       aes(n, y = response, label = n),
-#       hjust = 0,
-#       nudge_x = 0.3,
-#       colour = BLUE,
-#       bg.colour = "white",
-#       bg.r = 0.2,
-#       size = 4
-#     ) + 
-#     geom_text(
-#       data = subset(question_df, n >= 2),
-#       aes(n-1.5, y = response, label = n),
-#       hjust = 0,
-#       nudge_x = 0.3,
-#       colour = "white",
-#       size = 4
-#     )
-# 
-# fig
 fig_2 <- mk_hz_bar_fig(q2_df)
-
+fig_2
 ggsave(file.path(fig_dir, "Figure_Q2.png"),
        fig_2, 
        device = "png",
        width = 6,
-       scale = 1.618,
+       height = 4,
        dpi = 600,
        )
 ```
@@ -253,6 +207,14 @@ q_3_fig_df <- q3_df %>%
 fig_3 <- mk_hz_bar_fig(q_3_fig_df)
 fig_3
 
+ggsave(file.path(fig_dir, "Figure_Q3.png"),
+       fig_3, 
+       device = "png",
+       width = 4,
+       height = 2,
+       dpi = 600,
+       )
+
 ```
 
 Text responses for `Yes` selections:
@@ -272,9 +234,9 @@ Text responses for `Sometimes` selections:
 
 ```{r echo=FALSE, include= T, results="asis"}
 # display text open text responses
-for (x in seq_along(question_3_df$response)) {
-  if(question_3_df$response[x] == "Sometimes"){
-    formatted_string <- paste("- ", question_3_df$value[x])
+for (x in seq_along(q3_df$response)) {
+  if(q3_df$response[x] == "Sometimes"){
+    formatted_string <- paste("- ", q3_df$value[x])
     cat(formatted_string, "\n")
   }
 }
@@ -285,9 +247,9 @@ Text responses for `No` selections:
 
 ```{r echo=FALSE, include= T, results="asis"}
 # display text open text responses
-for (x in seq_along(question_3_df$response)) {
-  if(question_3_df$response[x] == "No"){
-    formatted_string <- paste("- ", question_3_df$value[x])
+for (x in seq_along(q3_df$response)) {
+  if(q3_df$response[x] == "No"){
+    formatted_string <- paste("- ", q3_df$value[x])
     cat(formatted_string, "\n")
   }
 }
@@ -318,64 +280,25 @@ specified_text_vector_q6 <- q6_df %>%
   na.omit() %>%
   unique()
 
-q6_df <- survey_analysis_df %>%
+q6_df <- q6_df %>%
   mutate(Q6 = str_split(Q6, pattern_sep_mc)) %>%
   unnest_longer(Q6) %>%
   select(1, "Q6") %>%
-  transmute(Collector_Name = factor(Collector_Name),
-            Q6 = Q6,
-            response = str_replace(Q6, " (?=\\().*", "")) %>%
+  transmute(Q6 = Q6,
+            response = str_replace(Q6, " (?=\\().*", ""),
+            response = factor(response)) %>%
   count(response) %>% 
   arrange(-n) # sort largest to smallest
 
 fig_4 <- mk_hz_bar_fig(q6_df)
-
-# fig <- ggplot(question_df) +
-#   geom_col(aes(n, reorder(response, -desc(n))), fill = BLUE, width = 0.6) + 
-#   scale_x_continuous(
-#     limits = c(0, 20.5),
-#     breaks = seq(0, 20, by = 5), 
-#     expand = c(0, 0), # The horizontal axis does not extend to either side
-#     position = "bottom"  # Labels are located on the bottom
-#   ) +
-#   # The vertical axis extends upwards & down
-#   scale_y_discrete(expand = expansion(add = c(0.5, 0.5))) +
-#   theme(
-#     # Set background color to white
-#     panel.background = element_rect(fill = "white"),
-#     # Set the color and the width of the grid lines for the horizontal axis
-#     panel.grid.major.x = element_line(color = LBLUE, size = 0.3),
-#     # Remove tick marks by setting their length to 0
-#     axis.ticks.length = unit(0, "mm"),
-#     # Remove the title for both axes
-#     axis.title = element_blank(),
-#     # Only left line of the vertical axis is painted in black
-#     axis.line.y.left = element_line(color = "black"),
-#     # Customize labels from the vertical axis
-#     axis.text.y = element_text(size = 12),
-#     # But customize labels for the horizontal axis
-#     axis.text.x = element_text(size = 12)
-#   ) +
-#   geom_shadowtext(
-#     data = subset(question_df, n < 2),
-#     aes(n, y = response, label = n),
-#     hjust = 0,
-#     nudge_x = 0.3,
-#     colour = BLUE,
-#     bg.colour = "white",
-#     bg.r = 0.2,
-#     size = 4
-#   ) + 
-#   geom_text(
-#     data = subset(question_df, n >= 2),
-#     aes(n-1.5, y = response, label = n),
-#     hjust = 0,
-#     nudge_x = 0.3,
-#     colour = "white",
-#     size = 4
-#   )
-# 
-# fig
+fig_4
+ggsave(file.path(fig_dir, "Figure_Q4.png"),
+       fig_4, 
+       device = "png",
+       width = 8,
+       height = 6,
+       dpi = 600,
+       )
 ```
 
 Text responses for `Others not listed` selections:
@@ -395,13 +318,51 @@ for (x in seq_along(specified_text_vector_q6)) {
 ```{r q8-figure}
 #| include: true
 q8_df <- prep_yn_df(survey_analysis_df, 8)
-fig_8 <- mk_hz_bar_fig(q8_df)
-fig_8
-ggsave(file.path(fig_dir, "Figure_Q8.png"),
-       fig_8, 
+fig_5 <- mk_hz_bar_fig(q8_df)
+fig_5
+ggsave(file.path(fig_dir, "Figure_Q5.png"),
+       fig_5, 
        device = "png",
-       width = 6,
-       scale = 1.618,
+       width = 4,
+       height = 2,
        dpi = 600,
        )
 ```
+
+# Question 6
+
+`r remove_q(survey_questions,10)`
+
+```{r q10-figure}
+#| include: true
+fig_6 <- mk_hz_bar_fig(q10_df)
+fig_6
+
+ggsave(file.path(fig_dir, "Figure_Q6.png"),
+       fig_6, 
+       device = "png",
+       width = 8,
+       height = 6,
+       dpi = 600,
+       )
+```
+
+
+# Question 7
+
+`r remove_q(survey_questions,11)`
+
+```{r q11-figure}
+#| include: true
+fig_7 <- mk_hz_bar_fig(q11_df)
+fig_7
+
+ggsave(file.path(fig_dir, "Figure_Q7.png"),
+       fig_7, 
+       device = "png",
+       width = 8,
+       height = 6,
+       dpi = 600,
+       )
+```
+

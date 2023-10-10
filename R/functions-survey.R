@@ -40,7 +40,7 @@ mk_hz_bar_fig <- function(preped_df){
   BLACK <- "#202020"
   
   fig <- ggplot(preped_df) +
-    geom_col(aes(n, response), fill = BLUE, width = 0.6) + 
+    geom_col(aes(n, reorder(response,n)), fill = BLUE, width = 0.6) + # order responses by values
     scale_x_continuous(
       limits = c(0, 20.5),
       breaks = seq(0, 20, by = 5), 
